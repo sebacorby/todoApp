@@ -1,13 +1,16 @@
-.calendar-panel{border:1px solid var(--border);border-radius:20px;background:var(--surface);overflow:hidden}
-.calendar-toolbar{min-height:64px;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.calendar-panel{border:1px solid var(--border);border-radius:20px;background:var(--surface);overflow:hidden;height:calc(100vh - 168px);min-height:0;display:flex;flex-direction:column}
+.calendar-toolbar{min-height:64px;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex:0 0 auto}
 .calendar-nav,.calendar-modes{display:flex;align-items:center;gap:7px}.calendar-toolbar button{border:1px solid var(--border);border-radius:10px;padding:7px 10px;background:var(--surface2);color:var(--text)}
 .calendar-toolbar button.active{background:var(--accent);color:#10131a}.calendar-nav strong{margin-left:7px;text-transform:capitalize}
-.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.dow,.time-head{padding:9px;text-align:center;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)}
-.cal-day{min-height:128px;padding:7px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#0e1217;transition:.15s}.cal-day.outside{background:#0b0e12;color:#59616c}
+.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:32px repeat(6,minmax(0,1fr));flex:1 1 auto;min-height:0;overflow:hidden}
+.dow,.time-head{padding:9px;text-align:center;color:var(--muted);font-size:11px;border-bottom:1px solid var(--border);min-height:0}
+.cal-day{min-height:0;padding:7px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#0e1217;transition:.15s;overflow:hidden}
+.cal-day.outside{background:#0b0e12;color:#59616c}
 .cal-day.today .day-number{background:var(--accent);color:#10131a}.day-number{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:12px;margin-left:auto}
-.day-events{display:grid;gap:4px;margin-top:5px}.cal-event{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;border:0;border-left:3px solid var(--event);border-radius:7px;padding:5px 6px;background:color-mix(in srgb,var(--event) 17%,#11161c);color:var(--text);font-size:11px}
+.day-events{display:grid;gap:4px;margin-top:5px;min-height:0;overflow:auto}
+.cal-event{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;border:0;border-left:3px solid var(--event);border-radius:7px;padding:5px 6px;background:color-mix(in srgb,var(--event) 17%,#11161c);color:var(--text);font-size:11px}
 .cal-event span{color:var(--muted);margin-right:5px}.drag-over{outline:2px solid var(--accent);outline-offset:-2px;background:#1a2130!important}
-.time-grid{display:grid;grid-template-columns:56px repeat(var(--days),minmax(120px,1fr));max-height:calc(100vh - 220px);overflow:auto}
-.time-corner,.time-head{position:sticky;top:0;z-index:2;background:var(--surface)}.hour-label{min-height:64px;padding:6px;color:var(--muted);font-size:10px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.time-grid{display:grid;grid-template-columns:56px repeat(var(--days),minmax(120px,1fr));max-height:calc(100vh - 220px);overflow:auto;flex:1 1 auto;min-height:0}
+.time-corner,.time-head{position:sticky;top:0;z-index:2;background:var(--surface)}.hour-label{min-height:64px;padding:6px;color:var(--muted);font-size:10px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface)}
 .time-slot{min-height:64px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#0e1217}.time-slot .cal-event{margin-bottom:3px}
-@media(max-width:720px){.calendar-toolbar{align-items:flex-start;flex-direction:column}.month-grid{min-width:700px}.calendar-panel{overflow:auto}.cal-day{min-height:105px}.time-grid{max-height:65vh}}
+@media(max-width:720px){.calendar-panel{height:auto;display:block;overflow:auto}.calendar-toolbar{align-items:flex-start;flex-direction:column}.month-grid{min-width:700px;grid-template-rows:auto repeat(6,105px);flex:none;overflow:visible}.cal-day{min-height:105px}.time-grid{max-height:65vh}}
