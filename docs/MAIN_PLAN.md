@@ -1,65 +1,68 @@
-# TodoApp — Main Plan & SSOT
+# TodoApp — SSOT
 
-> **Single Source of Truth (SSOT)** for product scope, architecture, implementation stages, decisions and delivery status.
->
-> Repository: `sebacorby/todoApp`  
-> Target branch: `main`  
-> Delivery model: one implementation stage per commit.  
-> Last updated: 2026-08-19.
+Repo: `sebacorby/todoApp`
+Rama: `feature/todo-app-implementation`
+Base: `main @ 20b178b69179c32e3a85aa0421ea385e2be4958a`
+Actualizado: 2026-08-19
 
-## 1. Product goal
+Única fuente de verdad. Para retomar: verificar HEAD, leer este archivo y continuar desde la primera etapa `PENDING`.
 
-Build a local-first task management app with a polished, minimal, professional **dark-only** UI. The core experience combines a Google Calendar-style scheduler with a task dashboard.
+## Alcance
+App local de tareas, sin login/backend, dark-only, minimalista, profesional y responsive.
 
-The app must work without login or remote backend. Data is persisted locally in the browser.
+Calendario estilo Google Calendar:
+- vistas mes/semana/día;
+- navegación ilimitada pasado/futuro;
+- click en slot abre alta con fecha/hora precargadas y editables;
+- click en tarea abre edición;
+- drag/drop cambia fecha/hora y persiste;
+- ajuste de duración cuando aplique.
 
-## 2. Functional scope
+Alta global: botón `+`, mismo modal, fecha/hora editables.
 
-### Calendar
-- Month, week and day views.
-- Free navigation to past and future dates without artificial limits.
-- Click a date/time slot to create a task.
-- Creation modal receives the clicked date/time pre-filled but still editable.
-- Drag & drop tasks freely across dates/times.
-- Resize scheduled task duration where the calendar view supports it.
-- Click an existing task to edit it.
+Dashboard: resumen, búsqueda, filtros por estado/criticidad, listado, histórico y acciones rápidas.
 
-### Global create action
-- A well-positioned `+` action opens the same task modal.
-- When opened from `+`, date and time are explicit editable inputs rather than values inferred from the calendar.
+Estados exactos:
+`not_started` Sin iniciar; `started` Iniciada; `paused` Pausada; `blocked` Bloqueada; `completed` Completa.
+Nueva -> `not_started`. Completa puede reactivarse a `not_started`.
 
-### Dashboard
-- List all tasks with search and filters.
-- Summary counts for actionable states.
-- Filter by task state and criticality.
-- Historical completed tasks remain available and editable/reactivatable.
+Criticidad:
+`low` Baja; `medium` Media; `high` Alta; `urgent` Urgente.
+El color es global por criticidad y NO se copia en tareas. Cambiarlo afecta histórico, presente, futuro y recurrencias.
 
-### Task states
-Exactly five task states:
-1. **Sin iniciar** (`not_started`)
-2. **Iniciada** (`started`)
-3. **Pausada** (`paused`)
-4. **Bloqueada** (`blocked`)
-5. **Completa** (`completed`)
+Recurrencia: `none|daily|weekly|monthly`, fin opcional. Ocurrencias derivadas por rango visible; no materializar futuro infinito.
 
-Expected transitions:
-- New task → `not_started`
-- `not_started` → `started`
-- `started` → `paused` | `blocked` | `completed`
-- `paused` | `blocked` → `started`
-- `completed` → reactivated as `not_started`
+## Arquitectura
+HTML + CSS + JavaScript ES modules + IndexedDB nativo.
+Sin framework adicional, backend, auth ni runtime desktop.
 
-The UI may expose direct editing of the state, but these transitions define the quick actions.
+Modelo Task:
+`id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
 
-### Criticality
-Exactly four criticalities:
-- Baja (`low`)
-- Media (`medium`)
-- Alta (`high`)
-- Urgente (`urgent`)
+Decisiones:
+- D-001 IndexedDB local.
+- D-002 colores en settings globales.
+- D-003 recurrencia derivada.
+- D-004 un solo modal para alta/edición.
+- D-005 stack nativo para evitar overkill.
+- D-006 implementar en `feature/todo-app-implementation`; no tocar `main`.
 
-Each criticality has a globally configurable color.
+## Protocolo
+Una etapa funcional = un commit. Cada commit de etapa actualiza este SSOT. Verificar SHA efectivo. Sin force push ni merge sin instrucción.
 
---
+## Etapas
+0 SSOT — `COMPLETED` — `310e711` (original truncado; reparado en rama).
+1 Foundation — `COMPLETED` — `20b178b` — shell dark, navegación e IndexedDB base.
+2 CRUD + modal — `PENDING` — CRUD persistente, modal reutilizable, +, validación, estados, criticidad, completar/reactivar.
+3 Calendario — `PENDING` — mes/semana/día, navegación, alta por slot, edición, drag/drop, duración.
+4 Dashboard — `PENDING` — resumen, búsqueda, filtros, histórico, quick actions.
+5 Recurrencia + colores — `PENDING` — daily/weekly/monthly, fin opcional, ocurrencias derivadas, editor global de colores.
+6 Polish + handoff — `PENDING` — accesibilidad, responsive, vacíos/errores, README, auditoría SSOT.
 
-THIS PASTE IS TRUNCATED INTENTIONALLY
+## Reanudación
+1. Verificar HEAD de la rama.
+2. Leer este SSOT.
+3. Ubicar primera etapa `PENDING`.
+4. Implementar solo esa etapa.
+5. Actualizar este SSOT en el mismo commit.
+6. Verificar el nuevo SHA.
