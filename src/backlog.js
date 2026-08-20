@@ -1,91 +1,15 @@
-if (!document.querySelector('link[data-backlog-css]')) {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "./src/backlog.css";
-  link.dataset.backlogCss = "";
-  document.head.append(link);
-}
-
-import { saveTask } from "./db.js";
-import { backlogTasks, reorderBacklog } from "./backlog-model.js";
-
-const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-}[char]));
-
-const eyeIcon = `<svg viewBox="0 0 24 24" aria-hidden="true">
-  <path d="M2.4 12s3.5-6 9.6-6 9.6 6 9.6 6-3.5 6-9.6 6-9.6-6-9.6-6Z"/>
-  <circle cx="12" cy="12" r="2.7"/>
-</svg>`;
-
-export function backlogHTML(tasks, colors) {
-  const items = backlogTasks(tasks);
-  return `<aside class="backlog-panel" data-backlog>
-    <header>
-      <div><p>BACKLOG</p><h2>Sin fecha</h2></div>
-      <button class="backlog-add" data-backlog-add aria-label="Agregar tarea al backlog">+</button>
-    </header>
-    <p class="backlog-help">Ordená arrastrando. Soltá una tarjeta en el calendario para agendarla.</p>
-    <div class="backlog-list" data-backlog-list>
-      ${items.map(task => `<article class="backlog-card" draggable="true" data-backlog-task="${task.id}" style="--task-color:${colors[task.criticality]}">
-        <span class="backlog-grip" aria-hidden="true">⠿</span>
-        <div class="backlog-copy"><b>${escapeHtml(task.title)}</b><small>${escapeHtml(task.description || "Sin descripción")}</small></div>
-        <button class="backlog-eye" data-backlog-open="${task.id}" aria-label="Abrir ${escapeHtml(task.title)}">${eyeIcon}</button>
-      </article>`).join("") || '<div class="backlog-empty">No hay tareas pendientes de planificación.</div>'}
-    </div>
-  </aside>`;
-}
-
-async function persistOrder(tasks) {
-  const now = new Date().toISOString();
-  for (const task of tasks) {
-    await saveTask({ ...task, backlogOrder: task.backlogOrder, updatedAt: now });
-  }
-}
-
-export function bindBacklog({ root, tasks, openTask, onChanged }) {
-  root.querySelector("[data-backlog-add]")?.addEventListener("click", () => openTask(null, null, { backlog: true }));
-
-  root.querySelectorAll("[data-backlog-open]").forEach(button => {
-    button.addEventListener("click", event => {
-      event.stopPropagation();
-      openTask(Number(button.dataset.backlogOpen));
-    });
-  });
-
-  root.querySelectorAll("[data-backlog-task]").forEach(card => {
-    card.addEventListener("dragstart", event => {
-      event.dataTransfer.setData("text/task-id", card.dataset.backlogTask);
-      event.dataTransfer.setData("text/task-source", "backlog");
-      event.dataTransfer.effectAllowed = "move";
-      card.classList.add("dragging");
-    });
-    card.addEventListener("dragend", () => card.classList.remove("dragging"));
-    card.addEventListener("dragover", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      card.classList.add("drag-over");
-    });
-    card.addEventListener("dragleave", () => card.classList.remove("drag-over"));
-    card.addEventListener("drop", async event => {
-      event.preventDefault();
-      event.stopPropagation();
-      card.classList.remove("drag-over");
-      const id = Number(event.dataTransfer.getData("text/task-id"));
-      if (!id || id === Number(card.dataset.backlogTask)) return;
-      await persistOrder(reorderBacklog(tasks, id, Number(card.dataset.backlogTask)));
-      await onChanged();
-    });
-  });
-
-  const list = root.querySelector("[data-backlog-list]");
-  list?.addEventListener("dragover", event => event.preventDefault());
-  list?.addEventListener("drop", async event => {
-    if (event.target.closest("[data-backlog-task]")) return;
-    event.preventDefault();
-    const id = Number(event.dataTransfer.getData("text/task-id"));
-    if (!id) return;
-    await persistOrder(reorderBacklog(tasks, id, null));
-    await onChanged();
-  });
-}
+if(!document.querySelector('link[data-backlog-css]')){const l=document.createElement("link");l.rel="stylesheet";l.href="./src/backlog.css";l.dataset.backlogCss="";document.head.append(l)}
+import{saveTask,allBacklogGroups,saveBacklogGroup,deleteBacklogGroup}from"./db.js";
+import{backlogTasks,tasksInGroup,reorderBacklog}from"./backlog-model.js";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const eye=`<svg viewBox="0 0 24 24"><path d="M2.4 12s3.5-6 9.6-6 9.6 6 9.6 6-3.5 6-9.6 6-9.6-6-9.6-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>`;
+let colors={};
+const card=t=>`<article class="backlog-card" draggable="true" data-backlog-task="${t.id}" data-group="${t.backlogGroupId??""}" style="--task-color:${colors[t.criticality]}"><span class="backlog-grip">⠿</span><div class="backlog-copy"><b>${esc(t.title)}</b><small>${esc(t.description||"Sin descripción")}</small></div><button class="backlog-eye" data-backlog-open="${t.id}" aria-label="Abrir ${esc(t.title)}">${eye}</button></article>`;
+const tree=(groups,tasks,parent=null,depth=0)=>groups.filter(g=>(g.parentId??null)===parent).sort((a,b)=>a.groupOrder-b.groupOrder||a.id-b.id).map(g=>{const items=tasksInGroup(tasks,g.id);return`<section class="backlog-group" style="--depth:${depth}" data-backlog-group="${g.id}"><div class="backlog-group-head"><span>📁</span><b>${esc(g.name)}</b><em>${items.length}</em><button data-group-add="${g.id}" title="Nueva subcarpeta">＋</button><button data-group-rename="${g.id}" title="Renombrar">✎</button><button data-group-delete="${g.id}" title="Eliminar">×</button></div><div class="backlog-group-drop" data-group-drop="${g.id}">${items.map(card).join("")||'<div class="backlog-folder-empty">Soltá tareas aquí</div>'}</div>${tree(groups,tasks,g.id,depth+1)}</section>`}).join("");
+export function backlogHTML(tasks,c){colors=c;return`<aside class="backlog-panel" data-backlog><header><div><p>BACKLOG</p><h2>Sin fecha</h2></div><div class="backlog-header-actions"><button class="backlog-folder-add" data-root-group-add title="Crear carpeta">📁＋</button><button class="backlog-add" data-backlog-add aria-label="Agregar tarea">+</button></div></header><p class="backlog-help">Creá carpetas y subcarpetas. Arrastrá tareas para organizarlas o soltálas en el calendario.</p><div class="backlog-tree" data-backlog-tree><div class="backlog-empty">Cargando…</div></div></aside>`}
+async function persist(items){const now=new Date().toISOString();for(const t of items)await saveTask({...t,updatedAt:now})}
+async function move(tasks,id,target,before=null){const t=backlogTasks(tasks).find(x=>x.id===Number(id));if(!t)return;const source=t.backlogGroupId??null;await persist(reorderBacklog(tasks,id,before,target));if(source!==target)await persist(tasksInGroup(tasks,source).filter(x=>x.id!==Number(id)).map((x,i)=>({...x,backlogOrder:i})))}
+function bindCards(root,tasks,openTask,onChanged){root.querySelectorAll("[data-backlog-open]").forEach(b=>b.onclick=e=>{e.stopPropagation();openTask(Number(b.dataset.backlogOpen))});root.querySelectorAll("[data-backlog-task]").forEach(c=>{c.ondragstart=e=>{e.dataTransfer.setData("text/task-id",c.dataset.backlogTask);e.dataTransfer.setData("text/task-source","backlog");e.dataTransfer.effectAllowed="move";c.classList.add("dragging")};c.ondragend=()=>c.classList.remove("dragging");c.ondragover=e=>{e.preventDefault();e.stopPropagation();c.classList.add("drag-over")};c.ondragleave=()=>c.classList.remove("drag-over");c.ondrop=async e=>{e.preventDefault();e.stopPropagation();c.classList.remove("drag-over");const id=Number(e.dataTransfer.getData("text/task-id"));if(!id||id===Number(c.dataset.backlogTask))return;await move(tasks,id,c.dataset.group===""?null:Number(c.dataset.group),Number(c.dataset.backlogTask));await onChanged()}})}
+function bindZones(root,tasks,onChanged){root.querySelectorAll("[data-group-drop],[data-root-drop]").forEach(z=>{z.ondragover=e=>{e.preventDefault();z.classList.add("drag-over")};z.ondragleave=()=>z.classList.remove("drag-over");z.ondrop=async e=>{if(e.target.closest("[data-backlog-task]"))return;e.preventDefault();z.classList.remove("drag-over");const id=Number(e.dataTransfer.getData("text/task-id"));if(!id)return;await move(tasks,id,z.dataset.groupDrop?Number(z.dataset.groupDrop):null);await onChanged()}})}
+async function addGroup(parent,groups,onChanged){const name=prompt(parent==null?"Nombre de la carpeta":"Nombre de la subcarpeta");if(!name?.trim())return;const s=groups.filter(g=>(g.parentId??null)===(parent??null));const order=s.length?Math.max(...s.map(g=>g.groupOrder??0))+1:0;await saveBacklogGroup({name:name.trim(),parentId:parent,groupOrder:order});await onChanged()}
+export async function bindBacklog({root,tasks,openTask,onChanged}){root.querySelector("[data-backlog-add]")?.addEventListener("click",()=>openTask(null,null,{backlog:true}));const groups=await allBacklogGroups(),r=tasksInGroup(tasks,null),host=root.querySelector("[data-backlog-tree]");host.innerHTML=`<section class="backlog-root"><div class="backlog-group-head root-head"><b>Sin categoría</b><em>${r.length}</em></div><div class="backlog-group-drop" data-root-drop>${r.map(card).join("")||'<div class="backlog-folder-empty">Soltá tareas aquí</div>'}</div></section>${tree(groups,tasks)||(!r.length?'<div class="backlog-empty">Creá una tarea o una carpeta para empezar.</div>':"")}`;root.querySelector("[data-root-group-add]")?.addEventListener("click",()=>addGroup(null,groups,onChanged));root.querySelectorAll("[data-group-add]").forEach(b=>b.onclick=()=>addGroup(Number(b.dataset.groupAdd),groups,onChanged));root.querySelectorAll("[data-group-rename]").forEach(b=>b.onclick=async()=>{const g=groups.find(x=>x.id===Number(b.dataset.groupRename)),name=prompt("Nuevo nombre",g?.name||"");if(g&&name?.trim()&&name.trim()!==g.name){await saveBacklogGroup({...g,name:name.trim(),updatedAt:new Date().toISOString()});await onChanged()}});root.querySelectorAll("[data-group-delete]").forEach(b=>b.onclick=async()=>{const g=groups.find(x=>x.id===Number(b.dataset.groupDelete));if(!g||!confirm(`¿Eliminar la carpeta vacía "${g.name}"?`))return;try{await deleteBacklogGroup(g.id);await onChanged()}catch(e){alert(e?.message||"La carpeta debe estar vacía.")}});bindCards(root,tasks,openTask,onChanged);bindZones(root,tasks,onChanged)}
