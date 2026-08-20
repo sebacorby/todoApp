@@ -1,4 +1,5 @@
 
+import "./dashboard-backlog-list.js";
 import { allBacklogGroups, saveBacklogGroup } from "./db.js";
 
 let dialog;
@@ -95,8 +96,8 @@ function ensureDialog() {
         }
       }
     } catch (error) {
-      error = error instanceof Error ? error : new Error(String(error));
-      dialog.querySelector("[data-folder-dialog-error]").textContent = error.message;
+      const err = error instanceof Error ? error : new Error(String(error));
+      dialog.querySelector("[data-folder-dialog-error]").textContent = err.message;
     }
   });
 
