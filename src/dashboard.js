@@ -1,17 +1,105 @@
-import{allTasks,getTask,saveTask,getSetting}from"./db.js";
-const $=s=>document.querySelector(s),STATUS={not_started:"Sin iniciar",started:"Iniciada",paused:"Pausada",blocked:"Bloqueada",completed:"Completa"},CRIT={low:"Baja",medium:"Media",high:"Alta",urgent:"Urgente"},DEF={low:"#66d9a5",medium:"#62a8ff",high:"#f6ad55",urgent:"#ff6b7a"};
-let f={q:"",status:"all",crit:"all"};
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),fmt=v=>new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v));
-function fillModal(t){const p=v=>{const d=new Date(v),n=x=>String(x).padStart(2,"0");return{d:`${d.getFullYear()}-${n(d.getMonth()+1)}-${n(d.getDate())}`,t:`${n(d.getHours())}:${n(d.getMinutes())}`}},s=p(t.startsAt),e=p(t.endsAt);$("#task-form").reset();$("#task-id").value=t.id;$("#modal-title").textContent="Editar tarea";$("#task-title").value=t.title;$("#task-description").value=t.description||"";$("#task-date").value=s.d;$("#task-time").value=s.t;$("#task-end").value=e.t;$("#task-criticality").value=t.criticality;$("#task-status").value=t.status;$("#task-recurrence").value=t.recurrence||"none";$("#task-recurrence-end").value=t.recurrenceEnd||"";$("#recurrence-end-wrap").classList.toggle("hidden",(t.recurrence||"none")==="none");$("#delete-task").classList.remove("hidden");$("#task-dialog").showModal();$("#task-title").focus()}
-function card(t,c){return `<article class="dash-task" data-id="${t.id}"><i style="background:${c[t.criticality]}"></i><div><div class="dash-title"><b>${esc(t.title)}</b><span>${CRIT[t.criticality]}${t.recurrence&&t.recurrence!=="none"?" · ↻":""}</span></div><small>${fmt(t.startsAt)} · ${esc(t.description||"Sin descripción")}</small></div><select data-status aria-label="Estado de ${esc(t.title)}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${t.status===k?"selected":""}>${v}</option>`).join("")}</select><button data-edit>Editar</button></article>`}
-export async function renderDash(){
- if(!document.querySelector('.nav-item[data-view="dashboard"].active'))return;
- const colors={...DEF,...await getSetting("criticalityColors",{})},tasks=(await allTasks()).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt)),now=Date.now(),list=tasks.filter(t=>(!f.q||`${t.title} ${t.description||""}`.toLowerCase().includes(f.q.toLowerCase()))&&(f.status==="all"||t.status===f.status)&&(f.crit==="all"||t.criticality===f.crit)),c={total:tasks.length,started:tasks.filter(t=>t.status==="started").length,blocked:tasks.filter(t=>t.status==="blocked").length,overdue:tasks.filter(t=>t.status!=="completed"&&new Date(t.endsAt).getTime()<now).length,completed:tasks.filter(t=>t.status==="completed").length};
- $("#content").innerHTML=`<section class="dashboard"><div class="summary-grid">${[["Total",c.total],["Iniciadas",c.started],["Bloqueadas",c.blocked],["Vencidas",c.overdue],["Completas",c.completed]].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div><div class="dashboard-panel"><div class="filters"><input data-search type="search" aria-label="Buscar tareas" placeholder="Buscar tareas…" value="${esc(f.q)}"><select data-fstatus aria-label="Filtrar por estado"><option value="all">Todos los estados</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${f.status===k?"selected":""}>${v}</option>`).join("")}</select><select data-fcrit aria-label="Filtrar por criticidad"><option value="all">Todas las criticidades</option>${Object.entries(CRIT).map(([k,v])=>`<option value="${k}" ${f.crit===k?"selected":""}>${v}</option>`).join("")}</select></div><div class="dashboard-list">${list.length?list.map(t=>card(t,colors)).join(""):'<div class="empty">No hay tareas para estos filtros.</div>'}</div></div><div class="history-panel"><h3>Histórico de completadas</h3><div class="history-list">${tasks.filter(t=>t.status==="completed").sort((a,b)=>new Date(b.completedAt||b.updatedAt)-new Date(a.completedAt||a.updatedAt)).slice(0,12).map(t=>`<button data-history="${t.id}"><span>${esc(t.title)}</span><small>${fmt(t.completedAt||t.updatedAt)}</small></button>`).join("")||'<p class="muted">Todavía no hay tareas completadas.</p>'}</div></div></section>`;
- $('[data-search]').oninput=e=>{f.q=e.target.value;renderDash()};$('[data-fstatus]').onchange=e=>{f.status=e.target.value;renderDash()};$('[data-fcrit]').onchange=e=>{f.crit=e.target.value;renderDash()};
- document.querySelectorAll("[data-edit],[data-history]").forEach(el=>el.onclick=async()=>fillModal(await getTask(Number(el.closest("[data-id]")?.dataset.id||el.dataset.history))));
- document.querySelectorAll("[data-status]").forEach(sel=>sel.onchange=async()=>{const t=await getTask(Number(sel.closest("[data-id]").dataset.id)),n=new Date().toISOString();t.status=sel.value;t.completedAt=sel.value==="completed"?(t.completedAt||n):null;t.updatedAt=n;await saveTask(t);renderDash()})
+import { allTasks, getTask, saveTask, getSetting } from "./db.js";
+
+const $ = selector => document.querySelector(selector);
+const STATUS = { not_started:"Sin iniciar", started:"Iniciada", paused:"Pausada", blocked:"Bloqueada", completed:"Completa" };
+const CRIT = { low:"Baja", medium:"Media", high:"Alta", urgent:"Urgente" };
+const DEF = { low:"#66d9a5", medium:"#62a8ff", high:"#f6ad55", urgent:"#ff6b7a" };
+let filters = { q:"", status:"all", crit:"all" };
+
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const fmt = value => {
+  if (!value) return "Sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sin fecha";
+  return new Intl.DateTimeFormat("es-AR", { dateStyle:"medium", timeStyle:"short" }).format(date);
+};
+const sortTasks = (a,b) => {
+  if (!a.startsAt && !b.startsAt) {
+    return (a.backlogOrder ?? Number.MAX_SAFE_INTEGER) - (b.backlogOrder ?? Number.MAX_SAFE_INTEGER) || a.id - b.id;
+  }
+  if (!a.startsAt) return 1;
+  if (!b.startsAt) return -1;
+  return new Date(a.startsAt) - new Date(b.startsAt);
+};
+
+function taskCard(task, colors) {
+  const when = task.startsAt ? fmt(task.startsAt) : "Sin fecha · Backlog";
+  return `<article class="dash-task" data-id="${task.id}">
+    <i style="background:${colors[task.criticality]}"></i>
+    <div>
+      <div class="dash-title"><b>${esc(task.title)}</b><span>${CRIT[task.criticality]}</span></div>
+      <small>${when} · ${esc(task.description || "Sin descripción")}</small>
+    </div>
+    <select data-status aria-label="Estado de ${esc(task.title)}">
+      ${Object.entries(STATUS).map(([key,label]) => `<option value="${key}" ${task.status===key?"selected":""}>${label}</option>`).join("")}
+    </select>
+    <button data-edit>Editar</button>
+  </article>`;
 }
-window.todoRenderDash=renderDash;
-document.querySelector("#task-form").addEventListener("submit",()=>setTimeout(renderDash,40));
-document.querySelector("#delete-task").addEventListener("click",()=>setTimeout(renderDash,40));
+
+export async function renderDash() {
+  if (!document.querySelector('.nav-item[data-view="dashboard"].active')) return;
+
+  const colors = { ...DEF, ...await getSetting("criticalityColors", {}) };
+  const tasks = (await allTasks()).sort(sortTasks);
+  const now = Date.now();
+  const list = tasks.filter(task =>
+    (!filters.q || `${task.title} ${task.description || ""}`.toLowerCase().includes(filters.q.toLowerCase())) &&
+    (filters.status === "all" || task.status === filters.status) &&
+    (filters.crit === "all" || task.criticality === filters.crit)
+  );
+  const counts = {
+    total: tasks.length,
+    started: tasks.filter(t => t.status === "started").length,
+    blocked: tasks.filter(t => t.status === "blocked").length,
+    overdue: tasks.filter(t => t.status !== "completed" && t.endsAt && new Date(t.endsAt).getTime() < now).length,
+    completed: tasks.filter(t => t.status === "completed").length,
+  };
+
+  $("#content").innerHTML = `<section class="dashboard">
+    <div class="summary-grid">
+      ${[["Total",counts.total],["Iniciadas",counts.started],["Bloqueadas",counts.blocked],["Vencidas",counts.overdue],["Completas",counts.completed]]
+        .map(([label,value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}
+    </div>
+    <div class="dashboard-panel">
+      <div class="filters">
+        <input data-search type="search" aria-label="Buscar tareas" placeholder="Buscar tareas…" value="${esc(filters.q)}">
+        <select data-fstatus aria-label="Filtrar por estado">
+          <option value="all">Todos los estados</option>
+          ${Object.entries(STATUS).map(([key,label]) => `<option value="${key}" ${filters.status===key?"selected":""}>${label}</option>`).join("")}
+        </select>
+        <select data-fcrit aria-label="Filtrar por criticidad">
+          <option value="all">Todas las criticidades</option>
+          ${Object.entries(CRIT).map(([key,label]) => `<option value="${key}" ${filters.crit===key?"selected":""}>${label}</option>`).join("")}
+        </select>
+      </div>
+      <div class="dashboard-list">
+        ${list.length ? list.map(task => taskCard(task, colors)).join("") : '<div class="empty">No hay tareas para estos filtros.</div>'}
+      </div>
+    </div>
+  </section>`;
+
+  $('[data-search]').oninput = e => { filters.q = e.target.value; renderDash(); };
+  $('[data-fstatus]').onchange = e => { filters.status = e.target.value; renderDash(); };
+  $('[data-fcrit]').onchange = e => { filters.crit = e.target.value; renderDash(); };
+
+  document.querySelectorAll("[data-edit]").forEach(button => {
+    button.onclick = () => window.todoOpenTaskModal?.(Number(button.closest("[data-id]").dataset.id));
+  });
+
+  document.querySelectorAll("[data-status]").forEach(select => {
+    select.onchange = async () => {
+      const task = await getTask(Number(select.closest("[data-id]").dataset.id));
+      const nowIso = new Date().toISOString();
+      task.status = select.value;
+      task.completedAt = select.value === "completed" ? (task.completedAt || nowIso) : null;
+      task.updatedAt = nowIso;
+      await saveTask(task);
+      await renderDash();
+    };
+  });
+}
+
+window.todoRenderDash = renderDash;
+document.querySelector("#task-form").addEventListener("submit", () => setTimeout(renderDash, 40));
+document.querySelector("#delete-task").addEventListener("click", () => setTimeout(renderDash, 40));

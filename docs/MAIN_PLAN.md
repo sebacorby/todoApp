@@ -2,57 +2,106 @@
 
 Repo `sebacorby/todoApp`.
 
-## Estado
+## Estado actual
 
-El MVP base y la persistencia SQLite fueron mergeados a `main`. La corrección HTTP vive en `feature/physical-local-db`.
+- Base estable: `main`.
+- Feature activa: `feature/calendar-backlog`.
+- Feature backlog: **COMPLETED / CI GREEN**.
+- Último HEAD funcional validado antes del cierre documental: `a28308a8e318a2c82f817a5bee8831c621a8287f`.
+- GitHub Actions run de validación funcional: `32360035629` → `completed / success`.
 
-## Requisito vigente
+## Reanudación
+
+1. Leer este archivo primero.
+2. Verificar el HEAD real de `feature/calendar-backlog`.
+3. Verificar que el último CI del HEAD esté verde.
+4. Si se integra, abrir PR hacia `main` y esperar los checks del PR.
+5. No mergear sin instrucción explícita.
+
+## Arquitectura vigente
 
 La persistencia es una SQLite física local y no depende del navegador, URL, puerto ni servidor que sirve la UI.
 
-Un navegador puro no puede abrir arbitrariamente un archivo SQLite del sistema. La arquitectura separa:
-
-1. UI: Electron o cualquier HTTP local.
-2. DB owner: proceso local loopback en `127.0.0.1:43127`.
+1. UI: Electron o HTTP local.
+2. DB owner web: proceso loopback en `127.0.0.1:43127`.
 3. SQLite física: ruta estable por usuario.
+4. Electron usa IPC directo; navegador usa HTTP loopback.
 
-Electron usa IPC directo. Browser usa HTTP loopback. Ambos apuntan al mismo archivo.
-
-## Ruta canónica
-
-La ruta coincide con el directorio de datos que usa TodoApp/Electron:
+Ruta canónica:
 
 - Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
 - Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
 
+## Backlog lateral del calendario
+
+Status: **COMPLETED**.
+
+### Comportamiento
+
+- El calendario muestra a la derecha un panel `Backlog / Sin fecha`.
+- Una tarea de backlog no tiene `startsAt` ni `endsAt`.
+- El orden manual se persiste en `backlogOrder`.
+- Cada tarea se muestra como tarjeta arrastrable.
+- Cada tarjeta tiene un icono de ojo para abrir/editar la tarea.
+- El botón `+` del panel crea una tarea sin fecha usando el mismo modal.
+- Las tarjetas se pueden reordenar con drag & drop dentro del backlog.
+- Una tarea sin fecha no puede ser recurrente hasta ser agendada.
+- Arrastrar una tarjeta al calendario conserva el mismo `id`.
+- Al soltar en vista día/semana toma fecha y hora exactas del slot.
+- Al soltar en vista mes toma el día y usa `09:00`.
+- Una tarea de backlog recibe inicialmente una duración de 1 hora.
+- Al quedar agendada, `backlogOrder` pasa a `null` y la tarjeta sale del backlog.
+- Dashboard representa estas tareas como `Sin fecha · Backlog` y no las cuenta como vencidas.
+
+### Datos
+
+SQLite schema actual: **v2**.
+
+Campos relevantes:
+- `starts_at TEXT NULL`
+- `ends_at TEXT NULL`
+- `backlog_order INTEGER NULL`
+
+Invariantes:
+- `starts_at` y `ends_at` son ambos null o ambos no-null.
+- una tarea sin fecha debe tener `recurrence = 'none'`.
+- las bases schema v1 migran a v2 sin perder tareas existentes.
+
 ## Decisiones
 
-- D-001 IndexedDB: SUPERSEDED.
 - D-009 SQLite física reemplaza IndexedDB.
 - D-017 gate E2E renderer→preload→IPC→SQLite.
-- D-019 browser usa adaptador HTTP loopback cuando `window.todoDb` no existe.
-- D-020 servicio DB escucha solo en `127.0.0.1:43127` y restringe CORS a localhost/127.0.0.1.
-- D-021 Electron y servicio web comparten la misma ruta canónica de SQLite.
-- D-022 CI prueba explícitamente UI servida por HTTP sin preload.
-- D-023 servir la UI con Python/Live Server requiere que `npm run db-service` esté activo; `npm run web` inicia UI + DB service en un solo proceso.
+- D-019 navegador usa adaptador HTTP loopback cuando `window.todoDb` no existe.
+- D-020 servicio DB escucha solo en `127.0.0.1:43127`.
+- D-021 Electron y web comparten la misma ruta canónica de SQLite.
+- D-022 CI prueba UI servida por HTTP sin preload.
+- D-024 backlog se modela como tareas con fechas nulas y `backlogOrder`, no como una entidad duplicada.
+- D-025 scheduling backlog→calendario conserva identidad y asigna 1 hora por defecto.
+- D-026 recurrencia queda deshabilitada mientras una tarea no tenga fecha.
+- D-027 el E2E de backlog usa una SQLite temporal y un renderer HTTP real para no tocar datos del usuario.
 
-## Feature HTTP + SQLite
+## Validación
 
-Status: COMPLETED.
+Run `32360035629`: `completed / success`.
 
-Commits funcionales:
-- `fafb6db82bdd21d2a196334c9c2a46b9b5e6c8c4` — fallback browser + servicio local SQLite.
-- `1f7791de642a25ad55a6605b6a67a926f18c6cb8` — smoke HTTP real + CI + documentación.
-
-Validación GitHub Actions run `32327975959`: `completed / success`.
-
-Gate verificado:
-- unit/recurrence/SQLite/loopback service: success;
+Gates verificados:
+- unit + recurrencia + modelo backlog + SQLite + migración v1→v2: success;
+- servicio loopback HTTP + tareas agendadas y backlog: success;
+- chequeo sintáctico de módulos JS: success;
 - Electron main + SQLite: success;
 - Electron renderer + preload + IPC + SQLite: success;
-- HTTP-served UI + loopback service + SQLite + CRUD + calendario renderizado: success.
+- HTTP renderer sin preload + loopback SQLite: success;
+- E2E backlog: tarjeta + icono ojo + drag/drop real a slot `14:00` + lectura posterior desde SQLite + `backlogOrder=null` + duración 1h: success.
 
-## Reanudación
+## Commits clave de la feature
 
-El scope de esta corrección está cerrado. Antes de integrar: verificar HEAD de `feature/physical-local-db`, abrir PR hacia `main` y esperar checks del PR. No mergear sin instrucción explícita.
+- `a124a3a4a75450dd251121b2702a1a839476dcb9` — modelo de orden/scheduling y tests.
+- `71f96821bea6c169b4d7163cfd3620da2c7b7ba1` — panel backlog.
+- `2185de4b7bc8e072c37c37709d1fe1e5ddffd8d6` — integración con modal.
+- `6acfbf66ca9d15a965eb6c17e53838b875383814` — drop al calendario.
+- `0c0e863db42048826bd72ac6d94b3f80b674d12b` — persistencia/migración/tests estabilizados.
+- `3b502ca11fddc7294895f2197820e6243269a2b6` — primer gate E2E.
+- `a28308a8e318a2c82f817a5bee8831c621a8287f` — runner E2E aislado y verde.
+
+No abrir ni mergear PR automáticamente sin instrucción explícita.

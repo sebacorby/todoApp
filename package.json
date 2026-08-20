@@ -12,7 +12,7 @@
     "smoke": "electron . --smoke-test",
     "smoke:ci": "electron . --smoke-test --no-sandbox",
     "smoke:renderer": "electron . --renderer-smoke-test --no-sandbox",
-    "smoke:http": "electron . --http-renderer-smoke-test --no-sandbox",
+    "smoke:http": "electron electron/http-backlog-smoke.js --no-sandbox",
     "test": "node --test tests/*.test.mjs"
   },
   "engines": {
