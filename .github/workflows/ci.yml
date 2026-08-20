@@ -28,3 +28,5 @@ jobs:
         run: xvfb-run -a npx electron electron/group-form-smoke.js --no-sandbox
       - name: Backlog delete only empty folders
         run: xvfb-run -a npx electron electron/backlog-delete-smoke.js --no-sandbox
+      - name: Dashboard and backlog shared folder hierarchy
+        run: xvfb-run -a npx electron electron/dashboard-backlog-smoke.js --no-sandbox
