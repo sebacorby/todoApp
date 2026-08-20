@@ -196,7 +196,7 @@ $("#task-form").addEventListener("submit", async event => {
     description: $("#task-description").value.trim(),
     startsAt,
     endsAt,
-    backlogOrder;
+    backlogOrder,
     status,
     criticality: $("#task-criticality").value,
     recurrence,
