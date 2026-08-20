@@ -1,12 +1,11 @@
 {
-  "name": "todo-app",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test tests/*.test.mjs"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "name":"todo-app",
+  "productName":"TodoApp",
+  "version":"1.1.0",
+  "private":true,
+  "type":"module",
+  "main":"electron/main.js",
+  "scripts":{"start":"electron .","test":"node --test tests/*.test.mjs"},
+  "engines":{"node":">=24"},
+  "devDependencies":{"electron":"43.4.1"}
 }
