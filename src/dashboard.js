@@ -1,4 +1,7 @@
+
 import { allTasks, getTask, saveTask, getSetting } from "./db.js";
+import { backlogHTML, bindBacklog } from "./backlog.js";
+import "./backlog-folder-ui.js";
 
 const $ = selector => document.querySelector(selector);
 const STATUS = { not_started:"Sin iniciar", started:"Iniciada", paused:"Pausada", blocked:"Bloqueada", completed:"Completa" };
@@ -15,7 +18,7 @@ const fmt = value => {
 };
 const sortTasks = (a,b) => {
   if (!a.startsAt && !b.startsAt) {
-    return (a.backlogOrder ?? Number.MAX_SAFE_INTEGER) - (b.backlogOrder ?? Number.MAX_SAFE_INTEGER) || a.id - b.id;
+    return (a.backlogOrder ?? Number.MAX_SAFE_INTEGER) - (b.backogOrder ?? Number.MAX_SAFE_INTEGER) || a.id - b.id;
   }
   if (!a.startsAt) return 1;
   if (!b.startsAt) return -1;
@@ -61,7 +64,22 @@ export async function renderDash() {
       ${[["Total",counts.total],["Iniciadas",counts.started],["Bloqueadas",counts.blocked],["Vencidas",counts.overdue],["Completas",counts.completed]]
         .map(([label,value]) => `<div><span>${label}</span><b>${value}</b></div>`).join("")}
     </div>
+
+    <div class="dashboard-backlog">
+      <div class="dashboard-section-head">
+        <div>
+          <p class="eyebrow">ESTRUCTURA</p>
+          <h2>Backlog por carpetas</h2>
+        </div>
+        <small>Misma estructura y datos que en Calendario.</small>
+      </div>
+      ${backlogHTML(tasks, colors)}
+    </div>
+
     <div class="dashboard-panel">
+      <div class="dashboard-section-head">
+        <div><p class="eyebrow">TAREAS</p><h2>Todas las tareas</h2></div>
+      </div>
       <div class="filters">
         <input data-search type="search" aria-label="Buscar tareas" placeholder="Buscar tareas…" value="${esc(filters.q)}">
         <select data-fstatus aria-label="Filtrar por estado">
@@ -79,15 +97,22 @@ export async function renderDash() {
     </div>
   </section>`;
 
+  await bindBacklog({
+    root: $(".dashboard-backlog"),
+    tasks,
+    openTask: window.todoOpenTaskModal,
+    onChanged: renderDash,
+  });
+
   $('[data-search]').oninput = e => { filters.q = e.target.value; renderDash(); };
   $('[data-fstatus]').onchange = e => { filters.status = e.target.value; renderDash(); };
   $('[data-fcrit]').onchange = e => { filters.crit = e.target.value; renderDash(); };
 
-  document.querySelectorAll("[data-edit]").forEach(button => {
+  document.querySelectorAll(".dashboard-panel [data-edit]").forEach(button => {
     button.onclick = () => window.todoOpenTaskModal?.(Number(button.closest("[data-id]").dataset.id));
   });
 
-  document.querySelectorAll("[data-status]").forEach(select => {
+  document.querySelectorAll(".dashboard-panel [data-status]").forEach(select => {
     select.onchange = async () => {
       const task = await getTask(Number(select.closest("[data-id]").dataset.id));
       const nowIso = new Date().toISOString();
