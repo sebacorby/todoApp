@@ -36,7 +36,7 @@ Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se deriv
 - 4 `COMPLETED` — Dashboard `eb0a700`.
 - 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
 - 6 `COMPLETEED` — Polish + README + auditoría final `38e2168`.
-- 7 `COMPLETED` — Hardening de recurrencia mensual: clamp de día al último día válido del mes destino + prueba regresión en `tests/recurrence.test.mjs`.
+- 7 `COMPLETED` — Hardening de recurrencia mensual `386d27d`: clamp de día al válido del mes destino + prueba regresión en `tests/recurrence.test.mjs`.
 
 ## Criterios finales cubiertos
 - Persistencia local sin login/backend.
