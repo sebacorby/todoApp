@@ -1,8 +1,10 @@
 # TodoApp
 
-Gestor de tareas de escritorio, dark-only y sin login. Los datos se guardan en una base **SQLite física en disco**: no dependen de navegador, URL, puerto ni servidor local.
+Gestor local de tareas con calendario y dashboard. La fuente de datos es una **SQLite física en disco** y no IndexedDB.
 
-## Ejecutar
+## Modos de uso
+
+### Escritorio (Electron)
 
 Requiere Node.js 24+:
 
@@ -11,15 +13,53 @@ npm install
 npm start
 ```
 
-## Base de datos
+### Navegador con un solo comando
 
-TodoApp usa SQLite mediante `node:sqlite`. El archivo vive en:
-
-```text
-<Electron userData>/data/todoapp.sqlite3
+```bash
+npm run web
 ```
 
-Cerrar la app, reiniciar la PC o cambiar el directorio desde el que se inicia no cambia la base. La UI no accede al filesystem directamente: un preload aislado expone únicamente operaciones de tareas/settings por IPC.
+Abrir `http://127.0.0.1:8080`.
+
+Este comando levanta la UI y el servicio local SQLite. Los datos siguen en el mismo archivo físico usado por Electron.
+
+### Navegador servido con Python, VS Code Live Server u otro servidor
+
+La UI puede servirse como quieras, pero un navegador no puede abrir directamente un archivo SQLite del sistema. Por eso debe existir un proceso local que sea dueño de la DB:
+
+Terminal 1:
+
+```bash
+npm run db-service
+```
+
+Terminal 2, por ejemplo:
+
+```bash
+python3 -m http.server 8080
+```
+
+Luego abrir `http://localhost:8080`.
+
+El origen/puerto del frontend puede cambiar; todos los modos usan el mismo servicio en `127.0.0.1:43127` y la misma SQLite física.
+
+## Ubicación de la DB
+
+La ruta es estable por usuario y no depende de URL, puerto, navegador ni directorio de trabajo:
+
+- Windows: `%LOCALAPPDATA%/TodoApp/data/todoapp.sqlite3`
+- macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
+- Linux: `${XDG_DATA_HOME:-~/.local/share}/TodoApp/data/todoapp.sqlite3`
+
+## Seguridad
+
+El servicio de DB:
+- escucha solo en `127.0.0.1`;
+- acepta CORS únicamente desde `localhost` o `127.0.0.1`;
+- no expone la DB a la red;
+- mantiene schema versionado y constraints SQLite.
+
+Electron conserva `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true`.
 
 ## Tests
 
@@ -27,16 +67,9 @@ Cerrar la app, reiniciar la PC o cambiar el directorio desde el que se inicia no
 npm test
 ```
 
-La batería cubre sintaxis, recurrencias y persistencia física: archivo SQLite real, firma, schema/versionado, CRUD, cierre/reapertura, settings, constraints y validaciones.
+CI además ejecuta:
+- Electron main + SQLite;
+- renderer + preload + IPC + SQLite;
+- **UI servida por HTTP sin preload** + servicio loopback + SQLite + CRUD + calendario renderizado.
 
-CI agrega un smoke test del runtime real:
-
-```bash
-npm run smoke
-```
-
-Ese smoke inicia Electron, abre la misma capa `node:sqlite`, valida schema y cierra sin crear la UI.
-
-## Desarrollo
-
-SSOT: `docs/MAIN_PLAN.md`. Feature: `feature/physical-local-db`, basada en `main`.
+El último test reproduce el caso de servir la app con `python -m http.server`.
