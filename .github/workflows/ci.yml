@@ -19,4 +19,4 @@ jobs:
       - name: Install Electron
         run: npm install --no-audit --no-fund
       - name: Electron + SQLite smoke test
-        run: xvfb-run -a npm run smoke
+        run: xvfb-run -a npm run smoke:ci
