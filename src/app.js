@@ -223,9 +223,7 @@ $("#delete-task").addEventListener("click", async () => {
   }
 });
 
-$("#create-task").addEventListener("click", () =>
-  openModal(null, null, view === "dashboard" ? { backlog:true } : {})
-);
+$("#create-task").addEventListener("click", () => openModal());
 $("#close-modal").addEventListener("click", closeModal);
 $("#cancel-modal").addEventListener("click", closeModal);
 
