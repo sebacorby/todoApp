@@ -52,6 +52,7 @@ function folderTree(groups, tasks, parentId = null, depth = 0) {
         <span>📁</span>
         <b>${esc(group.name)}</b>
         <em>${ownTasks.length}</em>
+        <button type="button" class="dashboard-folder-rename" data-group-rename="${group.id}" aria-label="Renombrar ${esc(group.name)}">✎</button>
       </header>
       <div class="dashboard-backlog-folder-body${open ? "" : " hidden"}"
         data-dashboard-folder-body="${group.id}">
@@ -145,18 +146,11 @@ style.textContent = `
   min-height:120px;
   padding:2px;
 }
-.dashboard-backlog-root-tasks{
-  display:grid;
-  gap:7px;
-}
-.dashboard-backlog-folder{
-  display:grid;
-  gap:6px;
-  margin-left:calc(var(--depth) * 16px);
-}
+.dashboard-backlog-root-tasks{display:grid;gap:7px}
+.dashboard-backlog-folder{display:grid;gap:6px;margin-left:calc(var(--depth) * 16px)}
 .dashboard-backlog-folder-head{
   display:grid;
-  grid-template-columns:24px 20px minmax(0,1fr) auto;
+  grid-template-columns:24px 20px minmax(0,1fr) auto 26px;
   gap:7px;
   align-items:center;
   min-height:38px;
@@ -165,69 +159,18 @@ style.textContent = `
   border-radius:11px;
   background:var(--surface2);
 }
-.dashboard-backlog-folder-head b{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.dashboard-backlog-folder-head em{
-  font-style:normal;
-  color:var(--muted);
-  font-size:11px;
-}
-.dashboard-backlog-toggle{
-  width:24px;
-  height:24px;
-  border:0;
-  padding:0;
-  background:transparent;
-  color:var(--text);
-  cursor:pointer;
-}
+.dashboard-backlog-folder-head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashboard-backlog-folder-head em{font-style:normal;color:var(--muted);font-size:11px}
+.dashboard-backlog-toggle{width:24px;height:24px;border:0;padding:0;background:transparent;color:var(--text);cursor:pointer}
+.dashboard-folder-rename{width:26px;height:26px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:7px;padding:0;cursor:pointer}
 .dashboard-backlog-folder-body.hidden{display:none}
-.dashboard-backlog-folder-body{
-  display:grid;
-  gap:6px;
-  padding-left:28px;
-}
-.dashboard-backlog-folder-drop{
-  display:grid;
-  gap:7px;
-  min-height:8px;
-  padding:3px 10px 3px 8px;
-  border-radius:10px;
-}
-.dashboard-backlog-card{
-  width:calc(100% - 24px);
-  max-width:none;
-  justify-self:start;
-}
-.dashboard-backlog-root-tasks .dashboard-backlog-card{
-  width:calc(100% - 28px);
-  margin-left:14px;
-}
-.dashboard-backlog-root-drop-hint{
-  margin-top:4px;
-  padding:8px 12px;
-  border:1px dashed var(--border);
-  border-radius:10px;
-  color:var(--muted);
-  font-size:11px;
-  text-align:center;
-}
-.dashboard-backlog-tree.pointer-drop-target,
-.dashboard-backlog-folder-head.pointer-drop-target,
-.dashboard-backlog-folder-drop.pointer-drop-target{
-  outline:2px solid var(--accent);
-  outline-offset:2px;
-}
-@media(max-width:900px){
-  .dashboard-backlog-card,
-  .dashboard-backlog-root-tasks .dashboard-backlog-card{
-    width:100%;
-    margin-left:0;
-  }
-}
+.dashboard-backlog-folder-body{display:grid;gap:6px;padding-left:28px}
+.dashboard-backlog-folder-drop{display:grid;gap:7px;min-height:8px;padding:3px 10px 3px 8px;border-radius:10px}
+.dashboard-backlog-card{width:calc(100% - 24px);max-width:none;justify-self:start}
+.dashboard-backlog-root-tasks .dashboard-backlog-card{width:calc(100% - 28px);margin-left:14px}
+.dashboard-backlog-root-drop-hint{margin-top:4px;padding:8px 12px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:11px;text-align:center}
+.dashboard-backlog-tree.pointer-drop-target,.dashboard-backlog-folder-head.pointer-drop-target,.dashboard-backlog-folder-drop.pointer-drop-target{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:900px){.dashboard-backlog-card,.dashboard-backlog-root-tasks .dashboard-backlog-card{width:100%;margin-left:0}}
 `;
 document.head.append(style);
 scheduleRender();
