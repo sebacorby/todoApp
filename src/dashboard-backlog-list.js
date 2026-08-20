@@ -1,10 +1,228 @@
-import{allTasks,allBacklogGroups,getTask,saveTask}from"./db.js";
-const q=s=>document.querySelector(s),open=new Set,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),groups=(a,p=null)=>a.filter(x=>(x.parentId??null)===p).sort((a,b)=>(a.groupOrder??0)-(b.groupOrder??0)||a.id-b.id),backlog=a=>a.filter(x=>!x.startsAt&&!x.endsAt);
-function opts(gs,v,p=null,d=0){return groups(gs,p).map(g=>`<option value="${g.id}" ${+v===g.id?"selected":""}>${"&mdash; ".repeat(d)}${esc(g.name)}</option>${opts(gs,v,g.id,d+1)}`).join("")}
-function task(t,gs){return`<article class="dbr" data-dbt="${t.id}"><div><b>${esc(t.title)}</b><small>${esc(t.description||"Sin descripcion")}</small></div><select data-dbm><option value="">Sin categoria</option>${opts(gs,t.backlogGroupId)}</select><button data-dbe>Editar</button></article>`}
-function tree(gs,ts,p=null,d=0){return groups(gs,p).map(g=>{const own=ts.filter(t=>(t.backlogGroupId??null)===g.id),o=open.has(g.id);return`<section class="dbf" style="--d:${d}"><header><button data-dbc="${g.id}" aria-expanded="${o}">${o?"&#9662;":"&#9656;"}</button><span>&#128193;</span><b>${esc(g.name)}</b><em>${own.length}</em></header><div class="dbb ${o?"":"hidden"}" data-dbb="${g.id}"><div class="dbt">${own.length?own.map(t=>task(t,gs)).join(""):"<small>Sin tareas directas</small>"}</div>${tree(gs,ts,g.id,d+1)}</div></section>`}).join("")}
-async function render(){if(!q('.nav-item[data-view="dashboard"].active'))return;const h=q(".dashboard-backlog");if(!h||h.dataset.dbfix)return;const[a,gs]=await Promise.all([allTasks(),allBacklogGroups()]);h.dataset.dbfix="1";h.className="dashboard-panel dashboard-backlog dbfix";h.innerHTML=`<div class="dashboard-section-head"><div><p class="eyebrow">BACKLOG</p><h2>Tareas por carpetas</h2></div></div><div class="dbh">${tree(gs,backlog(a))}</div>`}
-let tm;const later=()=>{clearTimeout(tm);tm=setTimeout(()=>render().catch(console.error),60)};new MutationObserver(later).observe(q("#content"),{childList:true,subtree:true});
-document.addEventListener("click",e=>{const c=e.target.closest("[data-dbc]");if(c){const id=+c.dataset.dbc;open.has(id)?open.delete(id):open.add(id);const o=open.has(id);q(`[data-dbb="${id}"]`)?.classList.toggle("hidden",!o);c.innerHTML=o?"&#9662;":"&#9656;";c.setAttribute("aria-expanded",o);return}const b=e.target.closest("[data-dbe]");if(b)window.todoOpenTaskModal?.(+b.closest("[data-dbt]").dataset.dbt)});
-document.addEventListener("change",async e=>{const s=e.target.closest("[data-dbm]");if(!s)return;const id=+s.closest("[data-dbt]").dataset.dbt,t=await getTask(id);if(!t||t.startsAt||t.endsAt)return;const g=s.value===""?null:+s.value,all=backlog(await allTasks()).filter(x=>x.id!==id&&(x.backlogGroupId??null)===g);t.backlogGroupId=g;t.backlogOrder=all.length;t.updatedAt=new Date().toISOString();await saveTask(t);await window.todoRenderDash?.();later()});
-const st=document.createElement("style");st.textContent=`.dbfix .backlog-panel{display:none!important}.dbh{display:grid;gap:8px}.dbf{display:grid;gap:6px;margin-left:calc(var(--d)*14px)}.dbf>header{display:grid;grid-template-columns:24px 18px minmax(0,1fr) auto;align-items:center;gap:7px;padding:5px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.dbf>header button{width:24px;height:24px;border:0;background:transparent;color:var(--text)}.dbf>header em{font-style:normal;color:var(--muted)}.dbb.hidden{display:none}.dbb{display:grid;gap:6px;padding-left:24px}.dbt{display:grid;gap:6px;padding:4px 10px 2px 12px}.dbr{width:calc(100% - 24px);display:grid;grid-template-columns:minmax(0,1fr) 210px auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#0e1217}.dbr div{min-width:0}.dbr b,.dbr small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dbr small,.dbt>small{color:var(--muted)}.dbr select,.dbr button{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:8px;padding:7px}@media(max-width:900px){.dbr{width:calc(100% - 10px);grid-template-columns:1fr}.dbr select,.dbr button{width:100%}}`;document.head.append(st);later();
+
+import { allTasks, allBacklogGroups } from "./db.js";
+
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+}[c]));
+
+const expanded = new Set();
+
+function sortedGroups(groups, parentId = null) {
+  return groups
+    .filter(group => (group.parentId ?? null) === parentId)
+    .sort((a,b) => (a.groupOrder ?? 0) - (b.groupOrder ?? 0) || a.id - b.id);
+}
+
+function backlogTasks(tasks) {
+  return tasks
+    .filter(task => !task.startsAt && !task.endsAt)
+    .sort((a,b) =>
+      (a.backlogOrder ?? Number.MAX_SAFE_INTEGER) -
+      (b.backlogOrder ?? Number.MAX_SAFE_INTEGER) ||
+      a.id - b.id
+    );
+}
+
+function card(task) {
+  return `<article class="backlog-card dashboard-backlog-card"
+    data-backlog-task="${task.id}"
+    data-group="${task.backlogGroupId ?? ""}">
+    <span class="backlog-grip">⠿</span>
+    <div class="backlog-copy">
+      <b>${esc(task.title)}</b>
+      <small>${esc(task.description || "Sin descripción")}</small>
+    </div>
+    <button class="backlog-eye" data-dashboard-task-edit="${task.id}" aria-label="Editar ${esc(task.title)}">✎</button>
+  </article>`;
+}
+
+function folderTree(groups, tasks, parentId = null, depth = 0) {
+  return sortedGroups(groups, parentId).map(group => {
+    const ownTasks = tasks.filter(task => (task.backlogGroupId ?? null) === group.id);
+    const open = expanded.has(group.id);
+
+    return `<section class="dashboard-backlog-folder"
+      data-dashboard-group="${group.id}"
+      style="--depth:${depth}">
+      <header class="dashboard-backlog-folder-head" data-group-target="${group.id}">
+        <button type="button"
+          class="dashboard-backlog-toggle"
+          data-dashboard-folder-toggle="${group.id}"
+          aria-expanded="${open}">${open ? "▾" : "▸"}</button>
+        <span>📁</span>
+        <b>${esc(group.name)}</b>
+        <em>${ownTasks.length}</em>
+      </header>
+      <div class="dashboard-backlog-folder-body${open ? "" : " hidden"}"
+        data-dashboard-folder-body="${group.id}">
+        <div class="dashboard-backlog-folder-drop" data-group-drop="${group.id}">
+          ${ownTasks.map(card).join("")}
+        </div>
+        ${folderTree(groups, tasks, group.id, depth + 1)}
+      </div>
+    </section>`;
+  }).join("");
+}
+
+async function renderUnifiedBacklog() {
+  if (!document.querySelector('.nav-item[data-view="dashboard"].active')) return;
+
+  const host = document.querySelector(".dashboard-backlog");
+  if (!host || host.dataset.unifiedBacklog === "1") return;
+
+  const [all, groups] = await Promise.all([allTasks(), allBacklogGroups()]);
+  const tasks = backlogTasks(all);
+  const loose = tasks.filter(task => task.backlogGroupId == null);
+
+  host.dataset.unifiedBacklog = "1";
+  host.className = "dashboard-panel dashboard-backlog dashboard-unified-backlog";
+  host.innerHTML = `
+    <div class="dashboard-section-head">
+      <div>
+        <p class="eyebrow">BACKLOG</p>
+        <h2>Backlog</h2>
+      </div>
+      <small>Arrastrá tareas libremente dentro o fuera de carpetas.</small>
+    </div>
+    <div class="dashboard-backlog-tree" data-root-drop>
+      <div class="dashboard-backlog-root-tasks">
+        ${loose.map(card).join("")}
+      </div>
+      ${folderTree(groups, tasks)}
+      <div class="dashboard-backlog-root-drop-hint">
+        Soltá aquí para dejar la tarea sin carpeta
+      </div>
+    </div>`;
+
+  const duplicateTaskPanel = host.nextElementSibling;
+  if (duplicateTaskPanel?.classList.contains("dashboard-panel")) {
+    duplicateTaskPanel.remove();
+  }
+}
+
+let timer;
+function scheduleRender() {
+  clearTimeout(timer);
+  timer = setTimeout(() => renderUnifiedBacklog().catch(console.error), 50);
+}
+
+new MutationObserver(scheduleRender).observe(
+  document.querySelector("#content"),
+  { childList:true, subtree:true }
+);
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest("[data-dashboard-folder-toggle]");
+  if (toggle) {
+    const id = Number(toggle.dataset.dashboardFolderToggle);
+    expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+    const open = expanded.has(id);
+    document.querySelector(`[data-dashboard-folder-body="${id}"]`)
+      ?.classList.toggle("hidden", !open);
+    toggle.textContent = open ? "▾" : "▸";
+    toggle.setAttribute("aria-expanded", String(open));
+    return;
+  }
+
+  const edit = event.target.closest("[data-dashboard-task-edit]");
+  if (edit) {
+    window.todoOpenTaskModal?.(Number(edit.dataset.dashboardTaskEdit));
+  }
+});
+
+const style = document.createElement("style");
+style.dataset.dashboardUnifiedBacklog = "";
+style.textContent = `
+.dashboard-unified-backlog .backlog-panel{display:none!important}
+.dashboard-backlog-tree{
+  display:grid;
+  gap:8px;
+  min-height:120px;
+  padding:2px;
+}
+.dashboard-backlog-root-tasks{
+  display:grid;
+  gap:7px;
+}
+.dashboard-backlog-folder{
+  display:grid;
+  gap:6px;
+  margin-left:calc(var(--depth) * 16px);
+}
+.dashboard-backlog-folder-head{
+  display:grid;
+  grid-template-columns:24px 20px minmax(0,1fr) auto;
+  gap:7px;
+  align-items:center;
+  min-height:38px;
+  padding:5px 9px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:var(--surface2);
+}
+.dashboard-backlog-folder-head b{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.dashboard-backlog-folder-head em{
+  font-style:normal;
+  color:var(--muted);
+  font-size:11px;
+}
+.dashboard-backlog-toggle{
+  width:24px;
+  height:24px;
+  border:0;
+  padding:0;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+}
+.dashboard-backlog-folder-body.hidden{display:none}
+.dashboard-backlog-folder-body{
+  display:grid;
+  gap:6px;
+  padding-left:28px;
+}
+.dashboard-backlog-folder-drop{
+  display:grid;
+  gap:7px;
+  min-height:8px;
+  padding:3px 10px 3px 8px;
+  border-radius:10px;
+}
+.dashboard-backlog-card{
+  width:calc(100% - 24px);
+  max-width:none;
+  justify-self:start;
+}
+.dashboard-backlog-root-tasks .dashboard-backlog-card{
+  width:calc(100% - 28px);
+  margin-left:14px;
+}
+.dashboard-backlog-root-drop-hint{
+  margin-top:4px;
+  padding:8px 12px;
+  border:1px dashed var(--border);
+  border-radius:10px;
+  color:var(--muted);
+  font-size:11px;
+  text-align:center;
+}
+.dashboard-backlog-tree.pointer-drop-target,
+.dashboard-backlog-folder-head.pointer-drop-target,
+.dashboard-backlog-folder-drop.pointer-drop-target{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+@media(max-width:900px){
+  .dashboard-backlog-card,
+  .dashboard-backlog-root-tasks .dashboard-backlog-card{
+    width:100%;
+    margin-left:0;
+  }
+}
+`;
+document.head.append(style);
+scheduleRender();
