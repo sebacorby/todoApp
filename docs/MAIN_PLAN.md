@@ -1,61 +1,95 @@
 # TodoApp — SSOT
 
-Repo `sebacorby/todoApp` · rama `feature/todo-app-implementation` · base `main@20b178b` · actualizado 2026-08-19.
+Repo `sebacorby/todoApp`. Base: `main@01660392e6cf0056e38cd876ec9b5424322dba16`. Rama: `feature/physical-local-db`. Actualizado 2026-08-19.
 
-**Regla:** este archivo es el único seguimiento. Para retomar: verificar HEAD, leer este archivo y continuar cualquier punto abierto. Una etapa funcional = un commit que también actualiza este SSOT. Sin force-push ni merge sin instrucción.
+**Regla:** única fuente de seguimiento. Verificar HEAD antes de modificar. Sin force-push ni merge sin instrucción.
 
-## Producto
+## Scope vigente
 
-App local dark-only, sin login/backend. IndexedDB + HTML/CSS/JavaScript ES modules.
+Se conserva el MVP completo: calendario, dashboard, CRUD, cinco estados, cuatro criticidades, colores globales, recurrencia e histórico.
 
-Tarea: `id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
+### Mejora solicitada: persistencia física
 
-Estados: `not_started` Sin iniciar; `started` Iniciada; `paused` Pausada; `blocked` Bloqueada; `completed` Completa. Nueva -> `not_started`; reactivar -> `not_started`.
+La persistencia no depende de navegador, origen, URL, puerto ni servidor.
 
-Criticidad: `low|medium|high|urgent`. Los colores se resuelven desde settings globales y nunca se copian en tareas: los cambios afectan histórico, presente, futuro y recurrencias.
+Arquitectura:
+- Electron 43.4.1 (Node 24).
+- SQLite física con `node:sqlite`.
+- Archivo `<userData>/data/todoapp.sqlite3`.
+- Electron main es dueño exclusivo de SQLite.
+- Renderer: `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`.
+- Preload expone API mínima por IPC.
+- Sin login, backend remoto ni cloud.
 
-Calendario: mes/semana/día, navegación temporal sin límite artificial, alta por slot con fecha/hora editables, edición por click y drag/drop persistente conservando duración.
+## Modelo
 
-Dashboard: resumen, búsqueda, filtros por estado/criticidad, listado, histórico de completadas y cambio rápido de estado.
-
-Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se derivan para el rango visible; no se materializa futuro infinito. Las recurrencias mensuales conservan el día original como ancla y hacen clamp al último día válido del mes destino.
+Task: `id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
+Estados: `not_started|started|paused|blocked|completed`.
+Criticidades: `low|medium|high|urgent`.
+Colores en settings globales.
 
 ## Decisiones
 
-- D-001 IndexedDB local.
-- D-002 colores globales en settings.
-- D-003 recurrencia derivada por rango.
-- D-004 modal único para alta/edición.
-- D-005 stack nativo para evitar overkill.
-- D-006 desarrollo en `feature/todo-app-implementation`; `main` no se modifica.
-- D-007 una ocurrencia recurrente representa su serie fuente; no hay excepciones por ocurrencia en el MVP.
-- D-008 Node 20 + `node:test` para regresión lógica y `node --check` para validación sintáctica; GitHub Actions es el gate previo al PR.
+- D-001 IndexedDB: SUPERSEDED.
+- D-009 SQLite física reemplaza IndexedDB.
+- D-010 DB bajo `app.getPath("userData")/data/todoapp.sqlite3`.
+- D-011 main process es dueño de DB.
+- D-012 renderer usa IPC vía preload aislado.
+- D-013 `PRAGMA user_version` gobierna migraciones; schema futuro falla seguro.
+- D-014 Node 24, alineado con Electron 43 y `node:sqlite`.
+- D-015 CI ejecuta tests Node puros y smoke real de Electron bajo Xvfb.
+- D-016 `--no-sandbox` se usa únicamente en el smoke del runner Linux alojado, por limitación del helper SUID; la ventana normal conserva `sandbox:true`.
 
-## Etapas
+## Historial
 
-- 0 `COMPLETED` — SSOT inicial `310e711`, reparado `5ec8b6f`.
-- 1 `COMPLETED` — Foundation `20b178b`.
-- 2 `COMPLETED` — CRUD + modal `4916032`.
-- 3 `COMPLETED` — Calendar `129acd9`.
-- 4 `COMPLETED` — Dashboard `eb0a700`.
-- 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
-- 6 `COMPLETEED` — Polish + README + auditoría `38e2168`.
-- 7 `COMPLETED` — Hardening inicial de recurrencia `386d27d`.
-- 8 `COMPLETED` — Scope closure: corrección final de recurrencia mensual, suite ampliada, chequeo sintáctico, README limpio y CI. Commit de reparación definitivo `fa04f2d`; validación local: 7s{7 tests en verde.
+Etapas 0–8 del MVP: COMPLETED y mergeadas a main por PR #1.
+
+## Feature persistencia física
+
+### Etapa 9 — Desktop runtime + SQLite
+Status: COMPLETED.
+Commit inicial: `8823051ecac7649e37ef6a2d76db9e4f592e3780`.
+Incluye Electron, store SQLite/schema v1, IPC/preload, reemplazo de `src/db.js` y README.
+
+### Etapa 10 — Tests persistencia y runtime
+Status: COMPLETED.
+Commits:
+- `d350e561e4ecacfb1e3f3ea127f969cea8b8bfe3` — fixture de schema futuro corregido, constraints/required-fields ampliados, syntax check de `electron/` y smoke Electron.
+- `fcd698a2834a48f4c3de1997bdbd9a7499c13815` — adaptación del smoke al runner Linux alojado.
+
+Validación final GitHub Actions, run `32325570659`:
+- status: `completed`
+- conclusion: `success`
+- 15/15 tests Node en verde.
+- Smoke Electron + SQLite real en verde.
+
+Cobertura de la batería:
+- ruta de DB estable e independiente de origen/browser;
+- archivo SQLite físico y firma real;
+- schema v1 y `PRAGMA user_version`;
+- CRUD;
+- persistencia después de close/reopen;
+- settings después de close/reopen;
+- reapertura sin pérdida;
+- rechazo seguro de schema futuro;
+- constraints de estado y criticidad;
+- validación de campos obligatorios;
+- recurrencias existentes;
+- chequeo sintáctico de `src/` y `electron/`;
+- arranque real de Electron usando la capa SQLite.
 
 ## Definition of Done
 
-- Persistencia local sin login/backend.
-- Cinco estados y cuatro criticidades.
-- Colores globales persistentes y propagación por referencia.
-- CRUD, completar/reactivar e histórico.
-- Calendario mes/semana/día, navegación, alta por slot y drag/drop.
-- Recurrencia daily/weekly/monthly con fin opcional y expansión derivada.
-- Dashboard con búsqueda/filtros/resumen.
-- Dark-only y responsive base.
-- README operativo.
-- Tests de lógica + sintaxis automatizados en GitHub Actions.
-- CI verde antes de abrir PR a `main`.
+- App de escritorio.
+- Sin IndexedDB para datos de negocio.
+- Todas las tareas/settings en SQLite.
+- Persistencia tras cerrar/reabrir.
+- Ruta independiente de URL/puerto/browser/CWD.
+- Schema versionado y constraints.
+- Tests de persistencia física.
+- Smoke de Electron real.
+- CI verde antes de PR.
 
 ## Reanudación
-El scope planificado está cerrado. Siguiente paso: abrir PR `feature/todo-app-implementation` -> `main`, luego verificar checks del PR. No mergear sin instruccción explícita.
+
+El scope de `feature/physical-local-db` está cerrado y validado. Siguiente paso opcional: revisión y PR hacia `main`. No crear ni mergear PR sin instrucción explícita.

@@ -1,26 +1,22 @@
 name: CI
-
 on:
   push:
-    branches:
-      - main
-      - feature/todo-app-implementation
+    branches: [main, feature/physical-local-db]
   pull_request:
-    branches:
-      - main
-
+    branches: [main]
 permissions:
   contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-      - name: Run tests
+          node-version: "24"
+      - name: Unit and persistence tests
         run: npm test
+      - name: Install Electron
+        run: npm install --no-audit --no-fund
+      - name: Electron + SQLite smoke test
+        run: xvfb-run -a npm run smoke:ci
