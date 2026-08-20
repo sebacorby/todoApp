@@ -30,6 +30,8 @@ export function expandTasks(tasks, rangeStart, rangeEnd) {
   const out = [];
 
   for (const task of tasks) {
+    if (!task.startsAt || !task.endsAt) continue;
+
     const base = new Date(task.startsAt);
     const end = new Date(task.endsAt);
     const duration = end.getTime() - base.getTime();
