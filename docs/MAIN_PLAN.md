@@ -1,65 +1,61 @@
-# TodoApp — Main Plan & SSOT
+# TodoApp — SSOT
 
-> **Single Source of Truth (SSOT)** for product scope, architecture, implementation stages, decisions and delivery status.
->
-> Repository: `sebacorby/todoApp`  
-> Target branch: `main`  
-> Delivery model: one implementation stage per commit.  
-> Last updated: 2026-08-19.
+Repo `sebacorby/todoApp` · rama `feature/todo-app-implementation` · base `main@20b178b` · actualizado 2026-08-19.
 
-## 1. Product goal
+**Regla:** este archivo es el único seguimiento. Para retomar: verificar HEAD, leer este archivo y continuar cualquier punto abierto. Una etapa funcional = un commit que también actualiza este SSOT. Sin force-push ni merge sin instrucción.
 
-Build a local-first task management app with a polished, minimal, professional **dark-only** UI. The core experience combines a Google Calendar-style scheduler with a task dashboard.
+## Producto
 
-The app must work without login or remote backend. Data is persisted locally in the browser.
+App local dark-only, sin login/backend. IndexedDB + HTML/CSS/JavaScript ES modules.
 
-## 2. Functional scope
+Tarea: `id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
 
-### Calendar
-- Month, week and day views.
-- Free navigation to past and future dates without artificial limits.
-- Click a date/time slot to create a task.
-- Creation modal receives the clicked date/time pre-filled but still editable.
-- Drag & drop tasks freely across dates/times.
-- Resize scheduled task duration where the calendar view supports it.
-- Click an existing task to edit it.
+Estados: `not_started` Sin iniciar; `started` Iniciada; `paused` Pausada; `blocked` Bloqueada; `completed` Completa. Nueva -> `not_started`; reactivar -> `not_started`.
 
-### Global create action
-- A well-positioned `+` action opens the same task modal.
-- When opened from `+`, date and time are explicit editable inputs rather than values inferred from the calendar.
+Criticidad: `low|medium|high|urgent`. Los colores se resuelven desde settings globales y nunca se copian en tareas: los cambios afectan histórico, presente, futuro y recurrencias.
 
-### Dashboard
-- List all tasks with search and filters.
-- Summary counts for actionable states.
-- Filter by task state and criticality.
-- Historical completed tasks remain available and editable/reactivatable.
+Calendario: mes/semana/día, navegación temporal sin límite artificial, alta por slot con fecha/hora editables, edición por click y drag/drop persistente conservando duración.
 
-### Task states
-Exactly five task states:
-1. **Sin iniciar** (`not_started`)
-2. **Iniciada** (`started`)
-3. **Pausada** (`paused`)
-4. **Bloqueada** (`blocked`)
-5. **Completa** (`completed`)
+Dashboard: resumen, búsqueda, filtros por estado/criticidad, listado, histórico de completadas y cambio rápido de estado.
 
-Expected transitions:
-- New task → `not_started`
-- `not_started` → `started`
-- `started` → `paused` | `blocked` | `completed`
-- `paused` | `blocked` → `started`
-- `completed` → reactivated as `not_started`
+Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se derivan para el rango visible; no se materializa futuro infinito. Las recurrencias mensuales conservan el día original como ancla y hacen clamp al último día válido del mes destino.
 
-The UI may expose direct editing of the state, but these transitions define the quick actions.
+## Decisiones
 
-### Criticality
-Exactly four criticalities:
-- Baja (`low`)
-- Media (`medium`)
-- Alta (`high`)
-- Urgente (`urgent`)
+- D-001 IndexedDB local.
+- D-002 colores globales en settings.
+- D-003 recurrencia derivada por rango.
+- D-004 modal único para alta/edición.
+- D-005 stack nativo para evitar overkill.
+- D-006 desarrollo en `feature/todo-app-implementation`; `main` no se modifica.
+- D-007 una ocurrencia recurrente representa su serie fuente; no hay excepciones por ocurrencia en el MVP.
+- D-008 Node 20 + `node:test` para regresión lógica y `node --check` para validación sintáctica; GitHub Actions es el gate previo al PR.
 
-Each criticality has a globally configurable color.
+## Etapas
 
---
+- 0 `COMPLETED` — SSOT inicial `310e711`, reparado `5ec8b6f`.
+- 1 `COMPLETED` — Foundation `20b178b`.
+- 2 `COMPLETED` — CRUD + modal `4916032`.
+- 3 `COMPLETED` — Calendar `129acd9`.
+- 4 `COMPLETED` — Dashboard `eb0a700`.
+- 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
+- 6 `COMPLETEED` — Polish + README + auditoría `38e2168`.
+- 7 `COMPLETED` — Hardening inicial de recurrencia `386d27d`.
+- 8 `COMPLETED` — Scope closure: corrección final de recurrencia mensual, suite ampliada, chequeo sintáctico, README limpio y CI. Commit de reparación definitivo `fa04f2d`; validación local: 7s{7 tests en verde.
 
-THIS PASTE IS TRUNCATED INTENTIONALLY
+## Definition of Done
+
+- Persistencia local sin login/backend.
+- Cinco estados y cuatro criticidades.
+- Colores globales persistentes y propagación por referencia.
+- CRUD, completar/reactivar e histórico.
+- Calendario mes/semana/día, navegación, alta por slot y drag/drop.
+- Recurrencia daily/weekly/monthly con fin opcional y expansión derivada.
+- Dashboard con búsqueda/filtros/resumen.
+- Dark-only y responsive base.
+- README operativo.
+- Tests de lógica + sintaxis automatizados en GitHub Actions.
+- CI verde antes de abrir PR a `main`.
+
+## Reanudación
+El scope planificado está cerrado. Siguiente paso: abrir PR `feature/todo-app-implementation` -> `main`, luego verificar checks del PR. No mergear sin instruccción explícita.
