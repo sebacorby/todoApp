@@ -35,21 +35,27 @@ function createWindow() {
 async function runRendererSmoke() {
   const win = newWindow({ show: false });
   const errors = [];
-  win.webContents.on("console-message", (_event, details) => {
-    if (details.level === "error") errors.push(details.message);
-  });
+  win.webContents.on("console-message", (_event, details) => { if (details.level === "error") errors.push(details.message); });
   win.webContents.on("preload-error", (_event, preloadPath, error) => errors.push(`preload ${preloadPath}: ${error.message}`));
   await win.loadFile(join(here, "..", "index.html"));
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  const result = await win.webContents.executeJavaScript(`({(
-    hasBridge: !!window.todoDb|
-    info: window.todoDb ? await window.todoDb.info() : null,
-    body: document.body.innerText
-  }))`);
-  if (!result.hasBridge || !result.info || result.body.includes("No se pudo abrir la base de datos local") || errors.length) {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const result = await win.webContents.executeJavaScript(`(async () => {
+    const hasBridge = !!window.todoDb;
+    if (!hasBridge) return { hasBridge, body: document.body.innerText };
+    const info = await window.todoDb.info();
+    const now = new Date().toISOString();
+    const id = await window.todoDb.saveTask({
+      title: "Renderer smoke", description: "CI integration", startsAt: now, endsAt: new Date(Date.now() + 3600000).toISOString(),
+      status: "not_started", criticality: "medium", recurrence: "none", recurrenceEnd: null, completedAt: null, createdAt: now, updatedAt: now
+    });
+    const saved = await window.todoDb.getTask(id);
+    const deleted = await window.todoDb.deleteTask(id);
+    return { hasBridge, info, savedTitle: saved?.title, deleted, body: document.body.innerText };
+  })()`);
+  if (!result.hasBridge || !result.info || result.savedTitle !== "Renderer smoke" || result.deleted !== 1 || result.body.includes("No se pudo abrir la base de datos local") || errors.length) {
     throw new Error(`Renderer smoke failed: ${JSON.stringify({ ...result, errors })}`);
   }
-  console.log(`TodoApp renderer smoke OK: SQLite schema ${result.info.schemaVersion}`);
+  console.log(`TodoApp renderer smoke OK: bridge + IPC + SQLite schema ${result.info.schemaVersion}`);
   win.destroy();
 }
 
