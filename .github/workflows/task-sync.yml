@@ -1,0 +1,20 @@
+name: Full Task Sync
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  task-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install Electron
+        run: npm install --no-audit --no-fund
+      - name: Calendar dashboard backlog full synchronization
+        run: xvfb-run -a npx electron electron/full-sync-smoke.js --no-sandbox
