@@ -14,11 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Unit and persistence tests
+      - name: Unit, recurrence, SQLite and loopback-service tests
         run: npm test
       - name: Install Electron
         run: npm install --no-audit --no-fund
       - name: Electron main + SQLite smoke
         run: xvfb-run -a npm run smoke:ci
-      - name: Renderer + preload + IPC + SQLite integration
+      - name: Electron renderer + preload + IPC + SQLite
         run: xvfb-run -a npm run smoke:renderer
+      - name: HTTP-served UI + loopback service + SQLite
+        run: xvfb-run -a npm run smoke:http
