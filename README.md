@@ -1,19 +1,17 @@
 # TodoApp
 
-Gestor local de tareas con calendario, dashboard y backlog. La fuente de datos es una **SQLite física en disco**.
+Gestor local de tareas con calendario, dashboard y backlog jerárquico. Los datos viven en una **SQLite física en disco**.
 
-## Modos de uso
+## Ejecutar
 
-### Escritorio (Electron)
-
-Requiere Node.js 24+:
+Escritorio:
 
 ```bash
 npm install
 npm start
 ```
 
-### Navegador con un solo comando
+Navegador:
 
 ```bash
 npm run web
@@ -21,53 +19,32 @@ npm run web
 
 Abrir `http://127.0.0.1:8080`.
 
-### Navegador servido con Python, Live Server u otro servidor
+## Backlog con carpetas
 
-Terminal 1:
+A la derecha del calendario está `Backlog / Sin fecha`.
 
-```bash
-npm run db-service
-```
-
-Terminal 2, por ejemplo:
-
-```bash
-python3 -m http.server 8080
-```
-
-Luego abrir `http://localhost:8080`.
-
-## Backlog
-
-A la derecha del calendario aparece `Backlog / Sin fecha`.
-
-- `+` crea una tarea sin fecha.
+- `+` crea tareas sin fecha.
+- El botón de carpeta crea una carpeta raíz.
+- Cada carpeta puede contener tantas subcarpetas como necesites.
+- Las carpetas pueden quedar vacías para recibir tareas más adelante.
+- `＋` dentro de una carpeta crea una subcarpeta.
+- `✎` renombra una carpeta.
+- `×` elimina una carpeta únicamente cuando está vacía.
+- Arrastrá tarjetas entre `Sin categoría`, carpetas y subcarpetas.
+- El orden se persiste por carpeta en SQLite.
 - El icono de ojo abre la tarea.
-- Las tarjetas se reordenan arrastrándolas.
-- El orden queda persistido en SQLite.
-- Al arrastrar una tarjeta al calendario, la tarea toma automáticamente la fecha y hora del lugar donde se suelta.
-- En vista mes se usa `09:00`; en día/semana se usa la hora del slot.
-- Una tarea recién agendada desde backlog recibe 1 hora de duración.
-- La tarea conserva su mismo `id` y deja de aparecer en backlog.
-- Las tareas sin fecha no son recurrentes hasta ser agendadas.
+- Arrastrar una tarea agrupada al calendario conserva su `id`, toma fecha/hora del destino y la quita del backlog.
 
-## Ubicación de la DB
+En vista mes el drop usa `09:00`; en día/semana usa la hora del slot. Una tarea recién agendada recibe 1 hora de duración.
 
+## SQLite
+
+Schema actual: **v3**. Las bases anteriores migran automáticamente sin perder tareas.
+
+Ubicación:
 - Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
 - Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
-
-La ruta no depende de URL, puerto, navegador ni directorio desde el que se sirve la UI.
-
-## Seguridad
-
-El servicio de DB:
-- escucha solo en `127.0.0.1`;
-- acepta CORS únicamente desde `localhost` o `127.0.0.1`;
-- no expone la DB a la red;
-- mantiene schema versionado y constraints SQLite.
-
-Electron conserva `contextIsolation: true`, `nodeIntegration: false` y `sandbox: true`.
 
 ## Tests
 
@@ -75,8 +52,4 @@ Electron conserva `contextIsolation: true`, `nodeIntegration: false` y `sandbox:
 npm test
 ```
 
-CI ejecuta además:
-- Electron main + SQLite;
-- renderer + preload + IPC + SQLite;
-- UI HTTP sin preload + servicio loopback + SQLite;
-- E2E de backlog: crea tarea sin fecha, valida tarjeta/ícono ojo, ejecuta drag & drop a un slot y comprueba fecha, hora, duración y salida del backlog directamente desde SQLite.
+CI también valida Electron, IPC, HTTP loopback y un E2E real que crea carpeta/subcarpeta desde la UI, mueve una tarea por drag & drop y luego la agenda en el calendario verificando el resultado directamente en SQLite.
