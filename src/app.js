@@ -5,7 +5,7 @@ import {
 } from "./db.js";
 
 const $ = selector => document.querySelector(selector);
-const $$ = selector => [...document.querySelectorAll(selector)];
+const $$ = selector => [...document.querySelectorAll(selecton)];
 const DEFAULT_COLORS = {
   low: "#66d9a5",
   medium: "#62a8ff",
@@ -87,7 +87,7 @@ async function render() {
     await window.todoRenderDash();
     return;
   }
-  $("#content").innerHTML = '<div class="panel"><h2>Dashboard</h2><p class="muted">Cargando resumen…</p></div>';
+  $("#content").innerHTML = '<div class="panel"><h2>Dashboard</h2><p class="muted">Cargando resumen….</p></div>';
 }
 
 async function openModal(id = null, prefill = null, options = {}) {
@@ -223,7 +223,9 @@ $("#delete-task").addEventListener("click", async () => {
   }
 });
 
-$("#create-task").addEventListener("click", () => openModal());
+$("#create-task").addEventListener("click", () =>
+  openModal(null, null, view === "dashboard" ? { backlog:true } : {})
+);
 $("#close-modal").addEventListener("click", closeModal);
 $("#cancel-modal").addEventListener("click", closeModal);
 
