@@ -35,19 +35,19 @@ Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se deriv
 - 3 `COMPLETED` — Calendar `129acd9`.
 - 4 `COMPLETED` — Dashboard `eb0a700`.
 - 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
-- 6 `COMPLETED` — Polish + README + auditoría final `38e2168`. Corrige integración/render del dashboard, error de sintaxis detectado en auditoría, mejora labels de accesibilidad y documenta ejecución.
+- 6 `COMPLETEED` — Polish + README + auditoría final `38e2168`.
+- 7 `COMPLETED` — Hardening de recurrencia mensual: clamp de día al último día válido del mes destino + prueba regresión en `tests/recurrence.test.mjs`.
 
 ## Criterios finales cubiertos
 - Persistencia local sin login/backend.
 - Cinco estados y cuatro criticidades.
-- Colores de criticidad globales y persistentes.
-- CRUD, completar/reactivar y histórico.
-- Calendario mes/semana/día con navegación, alta por slot y drag/drop.
+- Colores globales y persistentes.
+- CRUD, completar/reactivar, histórico.
+- Calendario mes/semana/día, navegación, alta por slot y drag/drop.
 - Recurrencia daily/weekly/monthly con fin opcional y expansión derivada.
 - Dashboard con búsqueda/filtros/resumen.
 - Dark-only y responsive base.
-- README operativo.
-- SSOT consistente.
+- README operativo y prueba de rápida de lógica.
 
 ## Reanudación
-La implementación planificada está completa en la feature branch. Antes de cualquier cambio adicional: verificar HEAD, revisar este SSOT y registrar una nueva etapa/decisión aquí. No mergear a `main` sin instrucción explícita.
+Lo planificado está completo en la feature branch. Para nuevos cambios: verificar HEAD, agregar una nueva etapa/decisión aquí y validar antes de mergear. No mergear a `main` sin instrucción explícita.

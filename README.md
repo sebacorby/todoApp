@@ -23,16 +23,22 @@ Con Python:
 python3 -m http.server 8080
 ```
 
-Abrir `http://localhost:8080`.
+Abrir `http://localhost:8080
 
-También puede usarse cualquier servidor estático equivalente.
+*# Pruebas de lógica
+
+Con Node 18+:
+
+```bash
+node tests/recurrence.test.mjs
+```
+
+Cubre específicamente el caso de recurrencia mensual en fechas de fin de mes, para evitar saltos inválidos de `new Date().setMonth()`.
 
 ## Datos
 
-Los datos quedan guardados en IndexedDB del navegador/dispositivo donde se ejecuta la app. No existe cuenta, sincronización remota ni backend.
+Los datos quedan guardados en IndexedDB del navegador/dispositivo. No existe cuenta, sincronización remota ni backend.
 
 ## Desarrollo
 
-El seguimiento único del proyecto está en `docs/MAIN_PLAN.md`.
-
-La implementación activa está en `feature/todo-app-implementation`. No fusionar a `main` sin validación explícita.
+El SSOT vive en `docs/MAIN_PLAN.md`. La implementación activa está en `feature/todo-app-implementation`. No fusionar a `main` sin validación explícita.
