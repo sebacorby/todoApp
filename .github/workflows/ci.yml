@@ -14,4 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - run: npm test
+      - name: Unit and persistence tests
+        run: npm test
+      - name: Install Electron
+        run: npm install --no-audit --no-fund
+      - name: Electron + SQLite smoke test
+        run: xvfb-run -a npm run smoke

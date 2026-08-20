@@ -10,34 +10,34 @@ Se conserva el MVP completo: calendario, dashboard, CRUD, cinco estados, cuatro 
 
 ### Mejora solicitada: persistencia física
 
-La persistencia no puede depender de navegador, origen, URL, puerto ni servidor.
+La persistencia no depende de navegador, origen, URL, puerto ni servidor.
 
 Arquitectura:
-- Electron 43.
+- Electron 43.4.1 (Node 24).
 - SQLite física con `node:sqlite`.
 - Archivo `<userData>/data/todoapp.sqlite3`.
 - Electron main es dueño exclusivo de SQLite.
-- Renderer aislado: `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`.
+- Renderer: `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`.
 - Preload expone API mínima por IPC.
 - Sin login, backend remoto ni cloud.
 
 ## Modelo
 
 Task: `id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
-
 Estados: `not_started|started|paused|blocked|completed`.
 Criticidades: `low|medium|high|urgent`.
-Colores en settings globales, nunca duplicados en tareas.
+Colores en settings globales.
 
 ## Decisiones
 
 - D-001 IndexedDB: SUPERSEDED.
 - D-009 SQLite física reemplaza IndexedDB.
-- D-010 ruta DB bajo `app.getPath("userData")/data/todoapp.sqlite3`.
+- D-010 DB bajo `app.getPath("userData")/data/todoapp.sqlite3`.
 - D-011 main process es dueño de DB.
 - D-012 renderer usa IPC vía preload aislado.
-- D-013 `PRAGMA user_version` gobierna migraciones y schemas futuros fallan seguro.
-- D-014 Node 24 para tests, alineado con Electron 43 y `node:sqlite`.
+- D-013 `PRAGMA user_version` gobierna migraciones; schema futuro falla seguro.
+- D-014 Node 24, alineado con Electron 43 y `node:sqlite`.
+- D-015 CI ejecuta tests Node puros y smoke real de Electron bajo Xvfb.
 
 ## Historial
 
@@ -47,11 +47,14 @@ Etapas 0–8 del MVP: COMPLETED y mergeadas a main por PR #1.
 
 ### Etapa 9 — Desktop runtime + SQLite
 Status: COMPLETED.
-Incluye runtime Electron, store SQLite/schema v1, IPC/preload, reemplazo de `src/db.js`, README y eliminación de dependencia funcional de IndexedDB.
+Commit inicial: `8823051`.
+Incluye Electron, store SQLite/schema v1, IPC/preload, reemplazo de `src/db.js` y README.
 
-### Etapa 10 — Tests persistencia
-Status: COMPLETED.
-Cobertura: archivo físico, firma SQLite, schema/user_version, CRUD, close/reopen, settings, reapertura no destructiva, schema futuro, constraints, suite previa de recurrencia y sintaxis.
+### Etapa 10 — Tests persistencia y runtime
+Status: VERIFYING.
+El primer CI encontró un defecto únicamente en el fixture de schema futuro: el test intentaba abrir SQLite antes de crear el directorio padre. Los 13 tests restantes pasaron.
+Corrección: crear primero la DB mediante `TodoStore`; ampliar constraints/required-fields; ampliar chequeo sintáctico a `electron/`; agregar smoke Electron + SQLite.
+Criterio de cierre: CI completo en `success`.
 
 ## Definition of Done
 
@@ -60,5 +63,7 @@ Cobertura: archivo físico, firma SQLite, schema/user_version, CRUD, close/reope
 - Todas las tareas/settings en SQLite.
 - Persistencia tras cerrar/reabrir.
 - Ruta independiente de URL/puerto/browser/CWD.
-- Schema versionado.
-- Suite completa verde local y CI antes de PR.
+- Schema versionado y constraints.
+- Tests de persistencia física.
+- Smoke de Electron real.
+- CI verde antes de PR.

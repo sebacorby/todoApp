@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { TodoStore, databasePath } from "./db-store.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
+const smokeTest = process.argv.includes("--smoke-test");
 let store;
 
 function registerIpc() {
@@ -26,9 +27,18 @@ function createWindow() {
 
 app.whenReady().then(() => {
   store = new TodoStore(databasePath(app.getPath("userData")));
+  if (smokeTest) {
+    const info = store.info();
+    console.log(`TodoApp smoke OK: SQLite schema ${info.schemaVersion}`);
+    store.close();
+    store = null;
+    app.quit();
+    return;
+  }
   registerIpc();
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
+
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 app.on("before-quit", () => store?.close());

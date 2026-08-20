@@ -27,7 +27,15 @@ Cerrar la app, reiniciar la PC o cambiar el directorio desde el que se inicia no
 npm test
 ```
 
-Incluyen sintaxis, recurrencias y persistencia física: archivo SQLite real, schema, CRUD, cierre/reapertura, settings, versionado y constraints.
+La batería cubre sintaxis, recurrencias y persistencia física: archivo SQLite real, firma, schema/versionado, CRUD, cierre/reapertura, settings, constraints y validaciones.
+
+CI agrega un smoke test del runtime real:
+
+```bash
+npm run smoke
+```
+
+Ese smoke inicia Electron, abre la misma capa `node:sqlite`, valida schema y cierra sin crear la UI.
 
 ## Desarrollo
 
