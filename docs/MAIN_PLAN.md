@@ -38,6 +38,7 @@ Colores en settings globales.
 - D-013 `PRAGMA user_version` gobierna migraciones; schema futuro falla seguro.
 - D-014 Node 24, alineado con Electron 43 y `node:sqlite`.
 - D-015 CI ejecuta tests Node puros y smoke real de Electron bajo Xvfb.
+- D-016 `--no-sandbox` se usa únicamente en el smoke del runner Linux alojado, por limitación del helper SUID; la ventana normal conserva `sandbox:true`.
 
 ## Historial
 
@@ -47,14 +48,35 @@ Etapas 0–8 del MVP: COMPLETED y mergeadas a main por PR #1.
 
 ### Etapa 9 — Desktop runtime + SQLite
 Status: COMPLETED.
-Commit inicial: `8823051`.
+Commit inicial: `8823051ecac7649e37ef6a2d76db9e4f592e3780`.
 Incluye Electron, store SQLite/schema v1, IPC/preload, reemplazo de `src/db.js` y README.
 
 ### Etapa 10 — Tests persistencia y runtime
-Status: VERIFYING.
-El primer CI encontró un defecto únicamente en el fixture de schema futuro: el test intentaba abrir SQLite antes de crear el directorio padre. Los 13 tests restantes pasaron.
-Corrección: crear primero la DB mediante `TodoStore`; ampliar constraints/required-fields; ampliar chequeo sintáctico a `electron/`; agregar smoke Electron + SQLite.
-Criterio de cierre: CI completo en `success`.
+Status: COMPLETED.
+Commits:
+- `d350e561e4ecacfb1e3f3ea127f969cea8b8bfe3` — fixture de schema futuro corregido, constraints/required-fields ampliados, syntax check de `electron/` y smoke Electron.
+- `fcd698a2834a48f4c3de1997bdbd9a7499c13815` — adaptación del smoke al runner Linux alojado.
+
+Validación final GitHub Actions, run `32325570659`:
+- status: `completed`
+- conclusion: `success`
+- 15/15 tests Node en verde.
+- Smoke Electron + SQLite real en verde.
+
+Cobertura de la batería:
+- ruta de DB estable e independiente de origen/browser;
+- archivo SQLite físico y firma real;
+- schema v1 y `PRAGMA user_version`;
+- CRUD;
+- persistencia después de close/reopen;
+- settings después de close/reopen;
+- reapertura sin pérdida;
+- rechazo seguro de schema futuro;
+- constraints de estado y criticidad;
+- validación de campos obligatorios;
+- recurrencias existentes;
+- chequeo sintáctico de `src/` y `electron/`;
+- arranque real de Electron usando la capa SQLite.
 
 ## Definition of Done
 
@@ -67,3 +89,7 @@ Criterio de cierre: CI completo en `success`.
 - Tests de persistencia física.
 - Smoke de Electron real.
 - CI verde antes de PR.
+
+## Reanudación
+
+El scope de `feature/physical-local-db` está cerrado y validado. Siguiente paso opcional: revisión y PR hacia `main`. No crear ni mergear PR sin instrucción explícita.
