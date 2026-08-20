@@ -24,3 +24,6 @@ export async function deleteBacklogGroup(id){const api=desktop();if(api)return a
 export async function getSetting(key,fallback=null){const api=desktop();if(api)return api.getSetting(key,fallback);try{return (await request(`/settings/${encodeURIComponent(key)}`)).value}catch(e){if(e.status===404)return fallback;throw e}}
 export async function saveSetting(key,value){const api=desktop();if(api)return api.saveSetting(key,value);return (await request(`/settings/${encodeURIComponent(key)}`,{method:"PUT",body:JSON.stringify({value})})).value}
 export const deleteBackogGroup = deleteBacklogGroup;
+// Compatibility bridge for the current backlog renderer, whose delete handler
+// resolves the correctly-spelled function name from the global environment.
+if(typeof globalThis!=="undefined")globalThis.deleteBacklogGroup=deleteBacklogGroup;

@@ -26,3 +26,5 @@ jobs:
         run: xvfb-run -a npm run smoke:http
       - name: Backlog folder + button + in-panel form
         run: xvfb-run -a npx electron electron/group-form-smoke.js --no-sandbox
+      - name: Backlog delete only empty folders
+        run: xvfb-run -a npx electron electron/backlog-delete-smoke.js --no-sandbox
