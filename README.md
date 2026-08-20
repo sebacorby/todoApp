@@ -45,11 +45,11 @@ El origen/puerto del frontend puede cambiar; todos los modos usan el mismo servi
 
 ## Ubicación de la DB
 
-La ruta es estable por usuario y no depende de URL, puerto, navegador ni directorio de trabajo:
+La ruta es estable por usuario y no depende de URL, puerto, navegador ni directorio de trabajo. Coincide con la ubicación de datos de TodoApp usada por Electron:
 
-- Windows: `%LOCALAPPDATA%/TodoApp/data/todoapp.sqlite3`
+- Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
-- Linux: `${XDG_DATA_HOME:-~/.local/share}/TodoApp/data/todoapp.sqlite3`
+- Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
 
 ## Seguridad
 
@@ -72,4 +72,4 @@ CI además ejecuta:
 - renderer + preload + IPC + SQLite;
 - **UI servida por HTTP sin preload** + servicio loopback + SQLite + CRUD + calendario renderizado.
 
-El último test reproduce el caso de servir la app con `python -m http.server`.
+El último test reproduce el caso de servir la app con `python -m http.server`, siempre con `npm run db-service` activo porque un navegador no puede abrir el archivo SQLite directamente.
