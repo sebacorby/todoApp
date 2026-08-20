@@ -1,6 +1,6 @@
 # TodoApp
 
-Gestor local de tareas con calendario y dashboard. La fuente de datos es una **SQLite física en disco** y no IndexedDB.
+Gestor local de tareas con calendario, dashboard y backlog. La fuente de datos es una **SQLite física en disco**.
 
 ## Modos de uso
 
@@ -21,11 +21,7 @@ npm run web
 
 Abrir `http://127.0.0.1:8080`.
 
-Este comando levanta la UI y el servicio local SQLite. Los datos siguen en el mismo archivo físico usado por Electron.
-
-### Navegador servido con Python, VS Code Live Server u otro servidor
-
-La UI puede servirse como quieras, pero un navegador no puede abrir directamente un archivo SQLite del sistema. Por eso debe existir un proceso local que sea dueño de la DB:
+### Navegador servido con Python, Live Server u otro servidor
 
 Terminal 1:
 
@@ -41,15 +37,27 @@ python3 -m http.server 8080
 
 Luego abrir `http://localhost:8080`.
 
-El origen/puerto del frontend puede cambiar; todos los modos usan el mismo servicio en `127.0.0.1:43127` y la misma SQLite física.
+## Backlog
+
+A la derecha del calendario aparece `Backlog / Sin fecha`.
+
+- `+` crea una tarea sin fecha.
+- El icono de ojo abre la tarea.
+- Las tarjetas se reordenan arrastrándolas.
+- El orden queda persistido en SQLite.
+- Al arrastrar una tarjeta al calendario, la tarea toma automáticamente la fecha y hora del lugar donde se suelta.
+- En vista mes se usa `09:00`; en día/semana se usa la hora del slot.
+- Una tarea recién agendada desde backlog recibe 1 hora de duración.
+- La tarea conserva su mismo `id` y deja de aparecer en backlog.
+- Las tareas sin fecha no son recurrentes hasta ser agendadas.
 
 ## Ubicación de la DB
-
-La ruta es estable por usuario y no depende de URL, puerto, navegador ni directorio de trabajo. Coincide con la ubicación de datos de TodoApp usada por Electron:
 
 - Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
 - Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
+
+La ruta no depende de URL, puerto, navegador ni directorio desde el que se sirve la UI.
 
 ## Seguridad
 
@@ -67,9 +75,8 @@ Electron conserva `contextIsolation: true`, `nodeIntegration: false` y `sandbox:
 npm test
 ```
 
-CI además ejecuta:
+CI ejecuta además:
 - Electron main + SQLite;
 - renderer + preload + IPC + SQLite;
-- **UI servida por HTTP sin preload** + servicio loopback + SQLite + CRUD + calendario renderizado.
-
-El último test reproduce el caso de servir la app con `python -m http.server`, siempre con `npm run db-service` activo porque un navegador no puede abrir el archivo SQLite directamente.
+- UI HTTP sin preload + servicio loopback + SQLite;
+- E2E de backlog: crea tarea sin fecha, valida tarjeta/ícono ojo, ejecuta drag & drop a un slot y comprueba fecha, hora, duración y salida del backlog directamente desde SQLite.
