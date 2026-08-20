@@ -18,5 +18,7 @@ jobs:
         run: npm test
       - name: Install Electron
         run: npm install --no-audit --no-fund
-      - name: Electron + SQLite smoke test
+      - name: Electron main + SQLite smoke
         run: xvfb-run -a npm run smoke:ci
+      - name: Renderer + preload + IPC + SQLite integration
+        run: xvfb-run -a npm run smoke:renderer
