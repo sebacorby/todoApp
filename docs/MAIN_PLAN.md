@@ -35,7 +35,7 @@ Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se deriv
 - 3 `COMPLETED` — Calendar `129acd9`.
 - 4 `COMPLETED` — Dashboard `eb0a700`.
 - 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
-- 6 `COMPLETED` — Polish + README + auditoría final. Corrige integración/render del dashboard, error de sintaxis detectado en auditoría, mejora labels de accesibilidad y documenta ejecución.
+- 6 `COMPLETED` — Polish + README + auditoría final `38e2168`. Corrige integración/render del dashboard, error de sintaxis detectado en auditoría, mejora labels de accesibilidad y documenta ejecución.
 
 ## Criterios finales cubiertos
 - Persistencia local sin login/backend.
