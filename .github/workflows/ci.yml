@@ -32,3 +32,5 @@ jobs:
         run: xvfb-run -a npx electron electron/dashboard-backlog-smoke.js --no-sandbox
       - name: Dashboard new task stays in unified backlog
         run: xvfb-run -a npx electron electron/dashboard-create-smoke.js --no-sandbox
+      - name: Calendar live backlog and dashboard completed task state
+        run: xvfb-run -a npx electron electron/backlog-status-view-smoke.js --no-sandbox
