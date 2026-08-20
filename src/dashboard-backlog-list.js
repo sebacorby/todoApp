@@ -82,7 +82,10 @@ async function renderUnifiedBacklog() {
         <p class="eyebrow">BACKLOG</p>
         <h2>Backlog</h2>
       </div>
-      <small>Arrastrá tareas libremente dentro o fuera de carpetas.</small>
+      <div class="dashboard-backlog-head-actions">
+        <small>Arrastrá tareas libremente dentro o fuera de carpetas.</small>
+        <button type="button" class="secondary dashboard-new-folder" data-root-group-add>+ Nueva carpeta</button>
+      </div>
     </div>
     <div class="dashboard-backlog-tree" data-root-drop>
       <div class="dashboard-backlog-root-tasks">
@@ -134,6 +137,8 @@ const style = document.createElement("style");
 style.dataset.dashboardUnifiedBacklog = "";
 style.textContent = `
 .dashboard-unified-backlog .backlog-panel{display:none!important}
+.dashboard-backlog-head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.dashboard-new-folder{white-space:nowrap}
 .dashboard-backlog-tree{
   display:grid;
   gap:8px;
