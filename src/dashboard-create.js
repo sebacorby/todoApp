@@ -1,5 +1,4 @@
-import "./calendar-backlog-live.js";
-import "./dashboard-backlog-status.js";
+import "./task-sync-controller.js";
 import "./dashboard-scroll.js";
 
 document.addEventListener("click", event => {
