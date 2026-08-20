@@ -23,3 +23,4 @@ export async function saveBacklogGroup(group){const api=desktop();if(api)return 
 export async function deleteBacklogGroup(id){const api=desktop();if(api)return api.deleteBacklogGroup(Number(id));return (await request(`/backlog-groups/${Number(id)}`,{method:"DELETE"})).deleted}
 export async function getSetting(key,fallback=null){const api=desktop();if(api)return api.getSetting(key,fallback);try{return (await request(`/settings/${encodeURIComponent(key)}`)).value}catch(e){if(e.status===404)return fallback;throw e}}
 export async function saveSetting(key,value){const api=desktop();if(api)return api.saveSetting(key,value);return (await request(`/settings/${encodeURIComponent(key)}`,{method:"PUT",body:JSON.stringify({value})})).value}
+export const deleteBackogGroup = deleteBacklogGroup;
