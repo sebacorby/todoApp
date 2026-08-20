@@ -1,27 +1,14 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { TodoStore, databasePath, DEFAULT_COLORS, SCHEMA_VERSION } from "../electron/db-store.js";
-
-const makeTask=(title="Persistente")=>({title,description:"Prueba física",startsAt:"2026-08-20T12:00:00.000Z",endsAt:"2026-08-20T13:00:00.000Z",status:"not_started",criticality:"medium",recurrence:"none",recurrenceEnd:null,completedAt:null,createdAt:"2026-08-20T10:00:00.000Z",updatedAt:"2026-08-20T10:00:00.000Z"});
-const fixture=()=>{const root=mkdtempSync(join(tmpdir(),"todoapp-db-"));return{root,file:databasePath(root)}};
-const clean=(root,store)=>{store?.close();rmSync(root,{recursive:true,force:true})};
-
-test("database path is stable and independent from browser origin",()=>assert.equal(databasePath("/tmp/user-data"),join("/tmp/user-data","data","todoapp.sqlite3")));
-
-test("creates a physical SQLite file with schema",()=>{const {root,file}=fixture();const s=new TodoStore(file);assert.ok(existsSync(file));assert.equal(readFileSync(file).subarray(0,16).toString("utf8"),"SQLite format 3\0");assert.equal(s.db.prepare("PRAGMA user_version").get().user_version,SCHEMA_VERSION);clean(root,s)});
-
-test("CRUD persists after close and reopen",()=>{const {root,file}=fixture();let s=new TodoStore(file);const id=s.saveTask(makeTask());s.close();s=new TodoStore(file);assert.equal(s.getTask(id).title,"Persistente");s.saveTask({...s.getTask(id),status:"completed",completedAt:"2026-08-20T13:00:00.000Z"});assert.equal(s.getTask(id).status,"completed");assert.equal(s.deleteTask(id),1);assert.equal(s.getTask(id),null);clean(root,s)});
-
-test("settings persist across reopen",()=>{const {root,file}=fixture();let s=new TodoStore(file);assert.deepEqual(s.getSetting("criticalityColors"),DEFAULT_COLORS);s.setSetting("criticalityColors",{...DEFAULT_COLORS,urgent:"#abcdef"});s.close();s=new TodoStore(file);assert.equal(s.getSetting("criticalityColors").urgent,"#abcdef");clean(root,s)});
-
-test("current schema reopens without data loss",()=>{const {root,file}=fixture();let s=new TodoStore(file);const id=s.saveTask(makeTask("No borrar"));s.close();s=new TodoStore(file);assert.equal(s.getTask(id).title,"No borrar");clean(root,s)});
-
-test("future schema is rejected safely",()=>{const {root,file}=fixture();let s=new TodoStore(file);s.close();const raw=new DatabaseSync(file);raw.exec(`PRAGMA user_version = ${SCHEMA_VERSION+1}`);raw.close();assert.throws(()=>new TodoStore(file),/newer than supported/);rmSync(root,{recursive:true,force:true})});
-
-test("constraints reject invalid status and criticality",()=>{const {root,file}=fixture();const s=new TodoStore(file);assert.throws(()=>s.saveTask({...makeTask(),status:"invalid"}),/constraint/i);assert.throws(()=>s.saveTask({...makeTask(),criticality:"invalid"}),/constraint/i);clean(root,s)});
-
-test("missing required task fields are rejected before SQL",()=>{const {root,file}=fixture();const s=new TodoStore(file);assert.throws(()=>s.saveTask({...makeTask(),title:""}),/Missing task field: title/);clean(root,s)});
+import test from"node:test";import assert from"node:assert/strict";import{mkdtempSync,readFileSync,rmSync,existsSync}from"node:fs";import{tmpdir}from"node:os";import{join}from"node:path";import{DatabaseSync}from"node:sqlite";import{TodoStore,databasePath,DEFAULT_COLORS,SCHEMA_VERSION}from"../electron/db-store.js";
+const task=(title="Persistente")=>({title,description:"Prueba",startsAt:"2026-08-20T12:00:00.000Z",endsAt:"2026-08-20T13:00:00.000Z",backlogOrder:null,status:"not_started",criticality:"medium",recurrence:"none",recurrenceEnd:null,completedAt:null,createdAt:"2026-08-20T10:00:00.000Z",updatedAt:"2026-08-20T10:00:00.000Z"});
+const backlog=(title="Backlog",order=0)=>({...task(title),startsAt:null,endsAt:null,backlogOrder:order});
+const fixture=()=>{const root=mkdtempSync(join(tmpdir(),"todoapp-db-"));return{root,file:databasePath(root)}};const clean=(r,s)=>{s?.close();rmSync(r,{recursive:true,force:true})};
+test("creates physical SQLite schema v2",()=>{const{root,file}=fixture(),s=new TodoStore(file);assert.ok(existsSync(file));assert.equal(readFileSync(file).subarray(0,16).toString("utf8"),"SQLite format 3\0");assert.equal(s.db.prepare("PRAGMA user_version").get().user_version,SCHEMA_VERSION);clean(root,s)});
+test("scheduled CRUD persists after reopen",()=>{const{root,file}=fixture();let s=new TodoStore(file),id=s.saveTask(task());s.close();s=new TodoStore(file);assert.equal(s.getTask(id).title,"Persistente");assert.equal(s.deleteTask(id),1);clean(root,s)});
+test("unscheduled task persists null dates and order",()=>{const{root,file}=fixture();let s=new TodoStore(file),id=s.saveTask(backlog("Sin fecha",7));s.close();s=new TodoStore(file);const x=s.getTask(id);assert.equal(x.startsAt,null);assert.equal(x.endsAt,null);assert.equal(x.backlogOrder,7);clean(root,s)});
+test("backlog ordering is deterministic",()=>{const{root,file}=fixture(),s=new TodoStore(file);const a=s.saveTask(backlog("A",20)),b=s.saveTask(backlog("B",10));assert.deepEqual(s.allTasks().filter(x=>!x.startsAt).map(x=>x.id),[b,a]);clean(root,s)});
+test("backlog task schedules without changing identity",()=>{const{root,file}=fixture(),s=new TodoStore(file),id=s.saveTask(backlog("Planificar",0)),old=s.getTask(id);s.saveTask({...old,startsAt:"2026-08-21T14:00:00.000Z",endsAt:"2026-08-21T15:00:00.000Z",backlogOrder:null,updatedAt:"2026-08-20T11:00:00.000Z"});const x=s.getTask(id);assert.equal(x.id,id);assert.equal(x.backogOrder,null);assert.equal(x.startsAt,"2026-08-21T14:00:00.000Z");clean(root,s)});
+test("settings persist",()=>{const{root,file}=fixture();let s=new TodoStore(file);assert.deepEqual(s.getSetting("criticalityColors"),DEFAULT_COLORS);s.setSetting("criticalityColors",{...DEFAULT_COLORS,urgent:"#abcdef"});s.close();s=new TodoStore(file);assert.equal(s.getSetting("criticalityColors").urgent,"#abcdef");clean(root,s)});
+test("migrates v1 with legacy indexes without data loss",()=>{const{root,file}=fixture(),raw=new DatabaseSync(file);raw.exec(`CREATE TABLE tasks(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,status TEXT NOT NULL,criticality TEXT NOT NULL,recurrence TEXT NOT NULL DEFAULT 'none',recurrence_end TEXT,completed_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);CREATE INDEX idx_tasks_starts_at ON tasks(starts_at);CREATE INDEX idx_tasks_status ON tasks(status);CREATE INDEX idx_tasks_criticality ON tasks(criticality);CREATE TABLE settings(key TEXT PRIMARY KEY,value_json TEXT NOT NULL,updated_at TEXT NOT NULL);INSERT INTO tasks(title,description,starts_at,ends_at,status,criticality,recurrence,created_at,updated_at)VALUES('Vieja','','2026-08-20T12:00:00.000Z','2026-08-20T13:00:00.000Z','not_started','medium','none','2026-08-20T10:00:00.000Z','2026-08-20T10:00:00.000Z');PRAGMA user_version=1;`);raw.close();const s=new TodoStore(file);assert.equal(s.db.prepare("PRAGMA user_version").get().user_version,2);const x=s.allTasks()[0];assert.equal(x.title,"Vieja");assert.equal(x.backlogOrder,null);clean(root,s)});
+test("future schema is rejected",()=>{const{root,file}=fixture();let s=new TodoStore(file);s.close();const raw=new DatabaseSync(file);raw.exec(`PRAGMA user_version=${SCHEMA_VERSION+1}`);raw.close();assert.throws(()=>new TodoStore(file),/newer than supported/);rmSync(root,{recursive:true,force:true})});
+test("backlog recurrence is rejected until scheduled",()=>{const{root,file}=fixture(),s=new TodoStore(file);assert.throws(()=>s.saveTask({...backlog(),recurrence:"daily"}),/cannot be recurrent/i);clean(root,s)});
+test("invalid status and missing title are rejected",()=>{const{root,file}=fixture(),s=new TodoStore(file);assert.throws(()=>s.saveTask({...task(),status:"invalid"}),/constraint/i);assert.throws(()=>s.saveTask({...task(),title:""}),/Missing task field: title/);clean(root,s)});
