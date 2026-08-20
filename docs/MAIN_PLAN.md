@@ -1,71 +1,35 @@
 # TodoApp — SSOT
 
-Repo: `sebacorby/todoApp`
-Rama: `feature/todo-app-implementation`
-Base: `main @ 20b178b69179c32e3a85aa0421ea385e2be4958a`
-Actualizado: 2026-08-19
+Repo `sebacorby/todoApp` · rama `feature/todo-app-implementation` · base `main@20b178b` · 2026-08-19.
 
-Única fuente de verdad. Para retomar: verificar HEAD, leer este archivo y continuar desde la primera etapa `PENDING`.
+**Regla:** este es el único seguimiento. Al retomar: verificar HEAD, leer este archivo y continuar la primera etapa `PENDING`. Una etapa funcional = un commit que también actualiza este archivo. Sin force-push ni merge sin instrucción.
 
-## Alcance
-App local de tareas, sin login/backend, dark-only, minimalista, profesional y responsive.
+## Producto
+App local sin login/backend, dark-only, minimalista, profesional y responsive. Persistencia IndexedDB nativa; HTML/CSS/JS ES modules, sin framework.
 
-Calendario estilo Google Calendar:
-- vistas mes/semana/día;
-- navegación ilimitada pasado/futuro;
-- click en slot abre alta con fecha/hora precargadas y editables;
-- click en tarea abre edición;
-- drag/drop cambia fecha/hora y persiste;
-- ajuste de duración cuando aplique.
+Tarea: `id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
 
-Alta global: botón `+`, mismo modal, fecha/hora editables.
+Estados exactos: `not_started` Sin iniciar; `started` Iniciada; `paused` Pausada; `blocked` Bloqueada; `completed` Completa. Nueva -> `not_started`; completa -> reactivar a `not_started`.
 
-Dashboard: resumen, búsqueda, filtros por estado/criticidad, listado, histórico y acciones rápidas.
+Criticidad: `low` Baja; `medium` Media; `high` Alta; `urgent` Urgente. El color es configuración global por criticidad, nunca se copia en tareas; cambiarlo afecta histórico/presente/futuro/recurrencias.
 
-Estados exactos:
-`not_started` Sin iniciar; `started` Iniciada; `paused` Pausada; `blocked` Bloqueada; `completed` Completa.
-Nueva -> `not_started`. Completa puede reactivarse a `not_started`.
+Calendario: mes/semana/día, navegación sin límite artificial, click slot -> modal con fecha/hora precargadas editables, click evento -> edición, drag/drop persistente conservando duración.
 
-Criticidad:
-`low` Baja; `medium` Media; `high` Alta; `urgent` Urgente.
-El color es global por criticidad y NO se copia en tareas. Cambiarlo afecta histórico, presente, futuro y recurrencias.
+Dashboard: resumen, búsqueda, filtros estado/criticidad, listado, histórico y acciones rápidas.
 
-Recurrencia: `none|daily|weekly|monthly`, fin opcional. Ocurrencias derivadas por rango visible; no materializar futuro infinito.
+Recurrencia: `none|daily|weekly|monthly`, fin opcional; ocurrencias derivadas por rango visible, nunca materializar futuro infinito.
 
-## Arquitectura
-HTML + CSS + JavaScript ES modules + IndexedDB nativo.
-Sin framework adicional, backend, auth ni runtime desktop.
-
-Modelo Task:
-`id,title,description,startsAt,endsAt,status,criticality,recurrence,recurrenceEnd,completedAt,createdAt,updatedAt`.
-
-Decisiones:
-- D-001 IndexedDB local.
-- D-002 colores en settings globales.
-- D-003 recurrencia derivada.
-- D-004 un solo modal para alta/edición.
-- D-005 stack nativo para evitar overkill.
-- D-006 implementar en `feature/todo-app-implementation`; no tocar `main`.
-
-## Protocolo
-Una etapa funcional = un commit. Cada commit de etapa actualiza este SSOT. Verificar SHA efectivo. Sin force push ni merge sin instrucción.
+## Decisiones
+D-001 IndexedDB local. D-002 colores en settings. D-003 recurrencia derivada. D-004 modal único alta/edición. D-005 stack nativo para evitar overkill. D-006 trabajar en feature branch, no tocar main.
 
 ## Etapas
-0 SSOT — `COMPLETED` — `310e711` (original truncado; reparado en rama).
-1 Foundation — `COMPLETED` — `20b178b` — shell dark, navegación e IndexedDB base.
-2 CRUD + modal — `COMPLETED` — CRUD persistente, modal reutilizable, +, validación, estados, criticidad, completar/reactivar.
-3 Calendario — `PENDING` — mes/semana/día, navegación, alta por slot, edición, drag/drop, duración.
-4 Dashboard — `PENDING` — resumen, búsqueda, filtros, histórico, quick actions.
-5 Recurrencia + colores — `PENDING` — daily/weekly/monthly, fin opcional, ocurrencias derivadas, editor global de colores.
-6 Polish + handoff — `PENDING` — accesibilidad, responsive, vacíos/errores, README, auditoría SSOT.
-
-## Registro de entrega
-- Etapa 2: alta/edición/eliminación persistentes, modal único, validación de horario, cinco estados, cuatro criticidades y completar/reactivar. SHA se verifica después del commit.
+0 `COMPLETED` SSOT inicial `310e711`, reparado `5ec8b6f`.
+1 `COMPLETED` Foundation `20b178b`.
+2 `COMPLETED` CRUD+modal `4916032`: alta/edición/eliminación, validación, estados, criticidad, completar/reactivar.
+3 `COMPLETED` Calendario: mes/semana/día, navegación libre, alta por slot, edición, drag/drop persistente.
+4 `PENDING` Dashboard.
+5 `PENDING` Recurrencia + colores globales.
+6 `PENDING` Polish + README + auditoría final.
 
 ## Reanudación
-1. Verificar HEAD de la rama.
-2. Leer este SSOT.
-3. Ubicar primera etapa `PENDING`.
-4. Implementar solo esa etapa.
-5. Actualizar este SSOT en el mismo commit.
-6. Verificar el nuevo SHA.
+Verificar HEAD -> leer SSOT -> ejecutar primera `PENDING` -> actualizar SSOT en el mismo commit -> verificar SHA.

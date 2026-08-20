@@ -1,3 +1,4 @@
+import{calendarHTML,bindCalendar}from"./calendar.js";
 import{openDB,allTasks,getTask,saveTask,deleteTask}from"./db.js";
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const STATUS={not_started:"Sin iniciar",started:"Iniciada",paused:"Pausada",blocked:"Bloqueada",completed:"Completa"};
@@ -15,7 +16,12 @@ async function render(){
   $("#view-title").textContent=view==="calendar"?"Calendario":"Dashboard";
   $("#eyebrow").textContent=view==="calendar"?"PLANIFICACIÓN":"RESUMEN";
   const tasks=(await allTasks()).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt));
-  $("#content").innerHTML=`<div class="panel"><h2>${view==="calendar"?"Tareas programadas":"Gestión de tareas"}</h2><p class="muted">${view==="calendar"?"El calendario visual se incorpora en la siguiente etapa.":"El dashboard completo se incorpora en su etapa dedicada."}</p>${tasks.length?`<div class="task-list">${tasks.map(taskCard).join("")}</div>`:'<div class="empty">No hay tareas todavía. Creá la primera con + Nueva tarea.</div>'}</div>`;
+  if(view==="calendar"){
+    $("#content").innerHTML=calendarHTML(tasks,COLORS);
+    bindCalendar({root:$("#content"),openTask:openModal,onChanged:render});
+    return;
+  }
+  $("#content").innerHTML=`<div class="panel"><h2>Gestión de tareas</h2><p class="muted">El dashboard completo se incorpora en su etapa dedicada.</p>${tasks.length?`<div class="task-list">${tasks.map(taskCard).join("")}</div>`:'<div class="empty">No hay tareas todavía. Creá la primera con + Nueva tarea.</div>'}</div>`;
   $$(".task-card").forEach(card=>card.addEventListener("click",e=>{if(!e.target.dataset.action)openModal(Number(card.dataset.id))}));
   $$("[data-action]").forEach(b=>b.addEventListener("click",async e=>{
     e.stopPropagation();const card=b.closest(".task-card"),id=Number(card.dataset.id);
