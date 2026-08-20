@@ -4,101 +4,76 @@ Repo `sebacorby/todoApp`.
 
 ## Estado actual
 
-- Base: `main` @ `fdb06ae30a31c547a82c83458a21da7777522e22`.
-- Feature activa: `feature/backlog-categories`.
-- Alcance: carpetas y subcarpetas jerárquicas dentro del backlog.
-- HEAD funcional validado: `e8fea02fbfbb4f09f40a7afb8c632efd6b580665`.
-- CI funcional: run `32362347423` → `completed / success`.
+- Base: `main` @ `ace383cb6628e48137c463826f9a2a5e88b2c018`.
+- Feature activa: `feature/backlog-ux-improvements`.
+- Alcance: mejoras de UX del backlog jerárquico.
+- HEAD funcional validado: `9fab5c42f8f332f6b35470ed7c3848352ce914c2`.
+- CI funcional: run `32366587839` → `completed / success`.
 - No abrir ni mergear PR sin instrucción explícita.
 
 ## Reanudación
 
 1. Leer este archivo.
-2. Verificar el HEAD real de `feature/backlog-categories`.
-3. Verificar el último CI del HEAD.
-4. Continuar solo si existe trabajo explícitamente pedido.
-5. Si se solicita integración, abrir PR hacia `main`; no mergear por inferencia.
+2. Verificar el HEAD real de `feature/backlog-ux-improvements`.
+3. Verificar el último run de `Backlog UX`.
+4. Si se solicita integración, abrir PR hacia `main`; no mergear por inferencia.
 
-## Arquitectura de persistencia
+## Persistencia
 
-SQLite física local. Schema actual: **v3**.
+SQLite física local, schema **v3**. Esta feature no cambia el schema.
 
-Rutas:
 - Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
 - Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
 
 Electron usa IPC; navegador usa servicio loopback en `127.0.0.1:43127`.
 
-## Backlog jerárquico
+## Backlog UX
 
 Status: **COMPLETED / CI GREEN**.
 
-### Modelo
+### Tarjetas
 
-Nueva tabla `backlog_groups`:
-- `id`
-- `name`
-- `parent_id` nullable
-- `group_order`
-- `created_at`
-- `updated_at`
+- Tarjeta compacta de hasta `270px` en escritorio.
+- Dos líneas de contenido: título y descripción.
+- Bordes curvos (`15px`).
+- Conserva grip de drag, color de criticidad e icono de ojo.
 
-`tasks` agrega `backlog_group_id` nullable.
+### Carpetas colapsables
 
-Invariantes:
-- una carpeta puede existir vacía;
-- `parent_id` permite subcarpetas recursivas sin un límite funcional fijo;
-- se impiden ciclos;
-- no se elimina una carpeta con tareas o subcarpetas;
-- una tarea agendada no puede conservar `backlog_group_id`;
-- migración v2→v3 preserva todas las tareas existentes y las deja sin categoría.
+- Toda carpeta tiene control abrir/cerrar.
+- En una carga nueva todas las carpetas aparecen cerradas.
+- Al crear una carpeta, se cierra el resto y queda abierta la recién creada.
+- Si la nueva carpeta es una subcarpeta, también se abren sus ancestros para que quede visible.
+- El estado abierto/cerrado es de sesión/UI; al recargar vuelve al default cerrado.
 
-### UI
+### Movimiento libre
 
-- Sección raíz `Sin categoría`.
-- Botón de carpeta para crear agrupadores raíz.
-- Cada carpeta permite crear subcarpeta, renombrar y eliminar si está vacía.
-- Carpetas vacías siguen visibles como destinos de drop.
-- Las tareas pueden arrastrarse entre raíz, carpetas y subcarpetas.
-- El orden de tareas se mantiene por grupo mediante `backlogOrder`.
-- El mismo `id` de tarea se conserva al moverla.
-- El icono de ojo sigue abriendo la tarea.
-- Al arrastrar una tarea agrupada al calendario se limpian `backlogGroupId` y `backlogOrder`, y se asignan fecha/hora/duración como antes.
-
-## Decisiones
-
-- D-028: los agrupadores son entidad propia (`backlog_groups`), no copias de tareas.
-- D-029: jerarquía mediante `parent_id`; carpetas vacías son válidas.
-- D-030: pertenencia de tarea mediante `backlog_group_id` nullable.
-- D-031: borrar grupos no vacíos está prohibido para evitar pérdida accidental.
-- D-032: scheduling al calendario elimina pertenencia al backlog/grupo manteniendo identidad.
+- Una tarea puede moverse entre cualquier carpeta/subcarpeta.
+- Puede volver a `Sin categoría`.
+- Una carpeta cerrada sigue siendo un destino válido: se puede soltar la tarjeta sobre su encabezado.
+- El movimiento conserva el mismo `id`.
+- `backlogGroupId` y `backlogOrder` se actualizan y persisten en SQLite.
+- El drag al calendario continúa limpiando pertenencia al backlog como antes.
 
 ## Validación
 
-Run `32362347423`: **success**.
+Run `32366587839`: **success**.
 
-El gate final valida:
-- unitarios de grupos, ciclos y persistencia;
-- migraciones SQLite hasta v3;
-- HTTP loopback;
-- Electron main;
-- renderer + preload + IPC;
-- creación de carpeta desde UI;
-- creación de subcarpeta desde UI;
-- carpeta vacía visible;
-- drag real de una tarea desde raíz a subcarpeta;
-- mismo `id` y `backlogGroupId` persistido en SQLite;
-- drag posterior al calendario;
-- `backlogGroupId=null`, `backlogOrder=null`, fecha/hora y duración 1h verificadas en SQLite.
+El E2E `electron/backlog-ux-smoke.js` valida:
+- primera carpeta recién creada abierta;
+- después de recargar, carpeta cerrada por defecto;
+- al crear una segunda carpeta, la anterior queda cerrada y la nueva abierta;
+- cerrar y reabrir manualmente;
+- tarjeta ≤270px, dos líneas y radio ≥12px;
+- mover una tarea desde una carpeta abierta hacia otra carpeta cerrada;
+- verificar el nuevo `backlogGroupId` en SQLite;
+- abrir destino y mover la misma tarea a `Sin categoría`;
+- verificar `backlogGroupId=null` y mismo `id`.
 
 ## Commits clave
 
-- `bff026cb89becf5f927da1a9d811fe4844b36b9f` — schema SQLite v3 y modelo jerárquico.
-- `624719ff10251cee64949a2701015b863a9962ca` — tests iniciales de grupos.
-- `6ec73d0dd3911f16757be4aaac22e5ffe5a20a73` — API web/loopback.
-- `3adcbb7bce7be87afcc483a09e0a25ec709a68d2` — API Electron IPC.
-- `69a52706c947eec3ee3ad8b5e5bcefdf4832ef2f` — orden de backlog consciente de grupo.
-- `3f820291e55f0fce95ec3d0e89dd659276cf6fed` — UI jerárquica.
-- `c0fa95b12585fb477a1f29d93e1930385d69244c` — estilos y tests de orden/scheduling.
-- `e8fea02fbfbb4f09f40a7afb8c632efd6b580665` — E2E jerárquico completo.
+- `ddc9698867968e73403ed8e9ba9a96db61f4e2f1` — carpetas colapsables y drop sobre carpetas cerradas.
+- `aaa7c8550f4b7f7435a9098d03ff6b3cf449ac53` — tarjetas compactas de dos líneas.
+- `642dfcb363062a912b9961a837d201fc50631129` — E2E de UX.
+- `9fab5c42f8f332f6b35470ed7c3848352ce914c2` — workflow de validación de la feature.

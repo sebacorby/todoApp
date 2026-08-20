@@ -25,23 +25,25 @@ A la derecha del calendario está `Backlog / Sin fecha`.
 
 - `+` crea tareas sin fecha.
 - El botón de carpeta crea una carpeta raíz.
-- Cada carpeta puede contener tantas subcarpetas como necesites.
-- Las carpetas pueden quedar vacías para recibir tareas más adelante.
+- Cada carpeta puede contener subcarpetas.
+- Las carpetas pueden quedar vacías.
 - `＋` dentro de una carpeta crea una subcarpeta.
-- `✎` renombra una carpeta.
-- `×` elimina una carpeta únicamente cuando está vacía.
-- Arrastrá tarjetas entre `Sin categoría`, carpetas y subcarpetas.
-- El orden se persiste por carpeta en SQLite.
+- `✎` renombra y `×` elimina una carpeta vacía.
+- Cada carpeta se puede abrir o colapsar.
+- En una carga nueva todas arrancan cerradas; la última carpeta creada queda abierta.
+- Las tarjetas son compactas, de dos líneas y bordes redondeados.
+- Arrastrá tareas libremente entre `Sin categoría`, carpetas y subcarpetas.
+- También podés soltar una tarea sobre el encabezado de una carpeta cerrada.
+- El movimiento conserva el mismo `id` y persiste el nuevo grupo/orden en SQLite.
 - El icono de ojo abre la tarea.
-- Arrastrar una tarea agrupada al calendario conserva su `id`, toma fecha/hora del destino y la quita del backlog.
+- Arrastrar una tarea al calendario conserva su `id`, toma fecha/hora del destino y la quita del backlog.
 
 En vista mes el drop usa `09:00`; en día/semana usa la hora del slot. Una tarea recién agendada recibe 1 hora de duración.
 
 ## SQLite
 
-Schema actual: **v3**. Las bases anteriores migran automáticamente sin perder tareas.
+Schema actual: **v3**.
 
-Ubicación:
 - Windows: `%APPDATA%/TodoApp/data/todoapp.sqlite3`
 - macOS: `~/Library/Application Support/TodoApp/data/todoapp.sqlite3`
 - Linux: `${XDG_CONFIG_HOME:-~/.config}/TodoApp/data/todoapp.sqlite3`
@@ -52,4 +54,4 @@ Ubicación:
 npm test
 ```
 
-CI también valida Electron, IPC, HTTP loopback y un E2E real que crea carpeta/subcarpeta desde la UI, mueve una tarea por drag & drop y luego la agenda en el calendario verificando el resultado directamente en SQLite.
+La feature `feature/backlog-ux-improvements` agrega un E2E que valida colapso/apertura, última carpeta creada abierta, tarjetas compactas y drag entre carpetas incluso cuando el destino está cerrado.
