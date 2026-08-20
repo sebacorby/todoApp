@@ -53,11 +53,14 @@ Una etapa funcional = un commit. Cada commit de etapa actualiza este SSOT. Verif
 ## Etapas
 0 SSOT — `COMPLETED` — `310e711` (original truncado; reparado en rama).
 1 Foundation — `COMPLETED` — `20b178b` — shell dark, navegación e IndexedDB base.
-2 CRUD + modal — `PENDING` — CRUD persistente, modal reutilizable, +, validación, estados, criticidad, completar/reactivar.
+2 CRUD + modal — `COMPLETED` — CRUD persistente, modal reutilizable, +, validación, estados, criticidad, completar/reactivar.
 3 Calendario — `PENDING` — mes/semana/día, navegación, alta por slot, edición, drag/drop, duración.
 4 Dashboard — `PENDING` — resumen, búsqueda, filtros, histórico, quick actions.
 5 Recurrencia + colores — `PENDING` — daily/weekly/monthly, fin opcional, ocurrencias derivadas, editor global de colores.
 6 Polish + handoff — `PENDING` — accesibilidad, responsive, vacíos/errores, README, auditoría SSOT.
+
+## Registro de entrega
+- Etapa 2: alta/edición/eliminación persistentes, modal único, validación de horario, cinco estados, cuatro criticidades y completar/reactivar. SHA se verifica después del commit.
 
 ## Reanudación
 1. Verificar HEAD de la rama.
