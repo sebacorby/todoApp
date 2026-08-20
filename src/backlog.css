@@ -1,0 +1,22 @@
+.planner-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+.planner-calendar{min-width:0}
+.backlog-panel{position:sticky;top:120px;border:1px solid var(--border);border-radius:20px;background:var(--surface);padding:14px;max-height:calc(100vh - 148px);display:flex;flex-direction:column;min-height:260px}
+.backlog-panel header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.backlog-panel header p{margin:0;color:var(--muted);font-size:10px;letter-spacing:.12em}
+.backlog-panel h2{margin:2px 0 0;font-size:17px}
+.backlog-add{width:34px;height:34px;border:0;border-radius:10px;background:var(--accent);color:#10131a;font-size:20px;font-weight:800}
+.backlog-help{margin:10px 0;color:var(--muted);font-size:11px;line-height:1.45}
+.backlog-list{display:grid;gap:8px;overflow:auto;padding:2px;min-height:90px}
+.backlog-card{display:grid;grid-template-columns:16px minmax(0,1fr) 34px;gap:8px;align-items:center;padding:10px 8px;border:1px solid var(--border);border-left:3px solid var(--task-color);border-radius:12px;background:#0e1217;cursor:grab;transition:.15s}
+.backlog-card:hover{background:#151a20}
+.backlog-card.dragging{opacity:.45}
+.backlog-card.drag-over{outline:2px solid var(--accent);outline-offset:1px}
+.backlog-grip{color:#697482;font-size:13px;letter-spacing:-3px}
+.backlog-copy{min-width:0;display:grid;gap:3px}
+.backlog-copy b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.backlog-copy small{color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.backlog-eye{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:#cbd4df}
+.backlog-eye svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}
+.backlog-empty{padding:24px 10px;text-align:center;color:var(--muted);font-size:11px;border:1px dashed var(--border);border-radius:12px}
+@media(max-width:1100px){.planner-layout{grid-template-columns:minmax(0,1fr) 260px}.backlog-panel{max-height:calc(100vh - 140px)}}
+@media(max-width:820px){.planner-layout{grid-template-columns:1fr}.backlog-panel{position:static;max-height:none}.backlog-list{max-height:320px}}
