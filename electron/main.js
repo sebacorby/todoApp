@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TodoStore, databasePath } from "./db-store.js";
@@ -18,15 +18,19 @@ function registerIpc(){
   h("settings:get",(_e,key,fallback)=>store.getSetting(key,fallback));
   h("settings:set",(_e,key,value)=>store.setSetting(key,value));
 }
+function initialWindowBounds(){
+  const { workArea } = screen.getPrimaryDisplay();
+  const width = Math.min(1680, Math.max(1100, Math.floor(workArea.width * .94)));
+  const height = Math.min(1000, Math.max(720, Math.floor(workArea.height * .94)));
+  const x = workArea.x + Math.floor((workArea.width - width) / 2);
+  const y = workArea.y + Math.floor((workArea.height - height) / 2);
+  return { width, height, x, y };
+}
 function createWindow(show=true){
-  const win=new BrowserWindow({show:false,width:1440,height:900,minWidth:900,minHeight:640,backgroundColor:"#0b0d10",autoHideMenuBar:true,webPreferences:{preload:join(here,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  const bounds = show ? initialWindowBounds() : { width:1440, height:900 };
+  const win=new BrowserWindow({show:false,...bounds,minWidth:900,minHeight:640,backgroundColor:"#0b0d10",autoHideMenuBar:true,webPreferences:{preload:join(here,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.loadFile(join(root,"index.html"));
-  if(show){
-    win.once("ready-to-show",()=>{
-      win.maximize();
-      win.show();
-    });
-  }
+  if(show) win.once("ready-to-show",()=>win.show());
   return win;
 }
 async function rendererSmoke(){
