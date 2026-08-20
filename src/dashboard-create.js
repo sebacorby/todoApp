@@ -1,5 +1,6 @@
 import "./calendar-backlog-live.js";
 import "./dashboard-backlog-status.js";
+import "./dashboard-scroll.js";
 
 document.addEventListener("click", event => {
   const create = event.target.closest("#create-task");

@@ -19,8 +19,14 @@ function registerIpc(){
   h("settings:set",(_e,key,value)=>store.setSetting(key,value));
 }
 function createWindow(show=true){
-  const win=new BrowserWindow({show,width:1440,height:900,minWidth:900,minHeight:640,backgroundColor:"#0b0d10",autoHideMenuBar:true,webPreferences:{preload:join(here,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  const win=new BrowserWindow({show:false,width:1440,height:900,minWidth:900,minHeight:640,backgroundColor:"#0b0d10",autoHideMenuBar:true,webPreferences:{preload:join(here,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   win.loadFile(join(root,"index.html"));
+  if(show){
+    win.once("ready-to-show",()=>{
+      win.maximize();
+      win.show();
+    });
+  }
   return win;
 }
 async function rendererSmoke(){
