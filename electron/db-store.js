@@ -1,124 +1,31 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-
-export const SCHEMA_VERSION = 2;
-export const DEFAULT_COLORS = { low:"#66d9a5", medium:"#62a8ff", high:"#f6ad55", urgent:"#ff6b7a" };
-export const databasePath = userDataPath => join(userDataPath, "data", "todoapp.sqlite3");
-
-const TASK_TABLE = `
-CREATE TABLE tasks(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  starts_at TEXT,
-  ends_at TEXT,
-  backlog_order INTEGER,
-  status TEXT NOT NULL CHECK(status IN('not_started','started','paused','blocked','completed')),
-  criticality TEXT NOT NULL CHECK(criticality IN('low','medium','high','urgent')),
-  recurrence TEXT NOT NULL DEFAULT 'none' CHECK(recurrence IN('none','daily','weekly','monthly')),
-  recurrence_end TEXT,
-  completed_at TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  CHECK((starts_at IS NULL AND ends_at IS NULL) OR (starts_at IS NOT NULL AND ends_at IS NOT NULL)),
-  CHECK(starts_at IS NOT NULL OR recurrence='none')
-);`;
-
-const TASK_INDEXES = `
-CREATE INDEX idx_tasks_starts_at ON tasks(starts_at);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_criticality ON tasks(criticality);
-CREATE INDEX idx_tasks_backlog_order ON tasks(backlog_order);`;
-
-const fromRow = row => ({
-  id:Number(row.id), title:row.title, description:row.description,
-  startsAt:row.starts_at, endsAt:row.ends_at,
-  backlogOrder:row.backlog_order == null ? null : Number(row.backlog_order),
-  status:row.status, criticality:row.criticality, recurrence:row.recurrence,
-  recurrenceEnd:row.recurrence_end, completedAt:row.completed_at,
-  createdAt:row.created_at, updatedAt:row.updated_at,
-});
-
-function normalizeTask(task) {
-  for (const key of ["title","status","criticality","createdAt","updatedAt"]) {
-    if (task[key] == null || task[key] === "") throw new Error(`Missing task field: ${key}`);
-  }
-  const hasStart = task.startsAt != null && task.startsAt !== "";
-  const hasEnd = task.endsAt != null && task.endsAt !== "";
-  if (hasStart !== hasEnd) throw new Error("startsAt and endsAt must both be set or both be null");
-  const recurrence = String(task.recurrence || "none");
-  if (!hasStart && recurrence !== "none") throw new Error("Backlog tasks cannot be recurrent until scheduled");
-  return {
-    title:String(task.title), description:String(task.description || ""),
-    startsAt:hasStart ? String(task.startsAt) : null,
-    endsAt:hasEnd ? String(task.endsAt) : null,
-    backlogOrder:task.backlogOrder == null ? null : Number(task.backlogOrder),
-    status:String(task.status), criticality:String(task.criticality), recurrence,
-    recurrenceEnd:hasStart ? (task.recurrenceEnd || null) : null,
-    completedAt:task.completedAt || null,
-    createdAt:String(task.createdAt), updatedAt:String(task.updatedAt),
-  };
-}
-
-export class TodoStore {
-  constructor(filePath) {
-    this.filePath = filePath;
-    mkdirSync(dirname(filePath), { recursive:true });
-    this.db = new DatabaseSync(filePath);
-    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
-    this.migrate();
-  }
-  migrate() {
-    const version = Number(this.db.prepare("PRAGMA user_version").get().user_version || 0);
-    if (version > SCHEMA_VERSION) throw new Error(`Database schema ${version} is newer than supported ${SCHEMA_VERSION}`);
-    if (version < 1) {
-      this.db.exec(`BEGIN;${TASK_TABLE}${TASK_INDEXES}
-        CREATE TABLE settings(key TEXT PRIMARY KEY,value_json TEXT NOT NULL,updated_at TEXT NOT NULL);
-        PRAGMA user_version=2;COMMIT;`);
-      this.setSetting("criticalityColors", DEFAULT_COLORS);
-      return;
-    }
-    if (version < 2) {
-      this.db.exec(`BEGIN;
-        DROP INDEX IF EXISTS idx_tasks_starts_at;
-        DROP INDEX IF EXISTS idx_tasks_status;
-        DROP INDEX IF EXISTS idx_tasks_criticality;
-        ALTER TABLE tasks RENAME TO tasks_v1;
-        ${TASK_TABLE}
-        INSERT INTO tasks(id,title,description,starts_at,ends_at,backlog_order,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at)
-        SELECT id,title,description,starts_at,ends_at,NULL,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at FROM tasks_v1;
-        DROP TABLE tasks_v1;
-        ${TASK_INDEXES}
-        PRAGMA user_version=2;COMMIT;`);
-    }
-  }
-  allTasks() {
-    return this.db.prepare(`SELECT * FROM tasks ORDER BY CASE WHEN starts_at IS NULL THEN 1 ELSE 0 END, starts_at, backlog_order, id`).all().map(fromRow);
-  }
-  getTask(id) {
-    const row = this.db.prepare("SELECT * FROM tasks WHERE id=?").get(Number(id));
-    return row ? fromRow(row) : null;
-  }
-  saveTask(task) {
-    const d = normalizeTask(task);
-    const v = [d.title,d.description,d.startsAt,d.endsAt,d.backlogOrder,d.status,d.criticality,d.recurrence,d.recurrenceEnd,d.completedAt,d.createdAt,d.updatedAt];
-    if (task.id) {
-      const r = this.db.prepare(`UPDATE tasks SET title=?,description=?,starts_at=?,ends_at=?,backlog_order=?,status=?,criticality=?,recurrence=?,recurrence_end=?,completed_at=?,created_at=?,updated_at=? WHERE id=?`).run(...v, Number(task.id));
-      if (!r.changes) throw new Error(`Task ${task.id} does not exist`);
-      return Number(task.id);
-    }
-    return Number(this.db.prepare(`INSERT INTO tasks(title,description,starts_at,ends_at,backlog_order,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(...v).lastInsertRowid);
-  }
-  deleteTask(id) { return Number(this.db.prepare("DELETE FROM tasks WHERE id=?").run(Number(id)).changes); }
-  getSetting(key, fallback=null) {
-    const row = this.db.prepare("SELECT value_json FROM settings WHERE key=?").get(key);
-    return row ? JSON.parse(row.value_json) : fallback;
-  }
-  setSetting(key, value) {
-    this.db.prepare(`INSERT INTO settings(key,value_json,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`).run(key, JSON.stringify(value), new Date().toISOString());
-    return value;
-  }
-  info() { return { filePath:this.filePath, schemaVersion:SCHEMA_VERSION }; }
-  close() { this.db.close(); }
+export const SCHEMA_VERSION=3;
+export const DEFAULT_COLORS={low:"#66d9a5",medium:"#62a8ff",high:"#f6ad55",urgent:"#ff6b7a"};
+export const databasePath=p=>join(p,"data","todoapp.sqlite3");
+const GROUP=`CREATE TABLE backlog_groups(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL CHECK(length(trim(name))>0),parent_id INTEGER REFERENCES backlog_groups(id) ON DELETE RESTRICT,group_order INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,CHECK(parent_id IS NULL OR parent_id<>id));`;
+const TASK=`CREATE TABLE tasks(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',starts_at TEXT,ends_at TEXT,backlog_order INTEGER,backlog_group_id INTEGER REFERENCES backlog_groups(id) ON DELETE RESTRICT,status TEXT NOT NULL CHECK(status IN('not_started','started','paused','blocked','completed')),criticality TEXT NOT NULL CHECK(criticality IN('low','medium','high','urgent')),recurrence TEXT NOT NULL DEFAULT 'none' CHECK(recurrence IN('none','daily','weekly','monthly')),recurrence_end TEXT,completed_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,CHECK((starts_at IS NULL AND ends_at IS NULL) OR (starts_at IS NOT NULL AND ends_at IS NOT NULL)),CHECK(starts_at IS NOT NULL OR recurrence='none'),CHECK(starts_at IS NULL OR backlog_group_id IS NULL));`;
+const IDX=`CREATE INDEX idx_tasks_starts_at ON tasks(starts_at);CREATE INDEX idx_tasks_status ON tasks(status);CREATE INDEX idx_tasks_criticality ON tasks(criticality);CREATE INDEX idx_tasks_backlog_order ON tasks(backlog_order);CREATE INDEX idx_tasks_backlog_group ON tasks(backlog_group_id);CREATE INDEX idx_backlog_groups_parent_order ON backlog_groups(parent_id,group_order,id);`;
+const taskRow=r=>({id:Number(r.id),title:r.title,description:r.description,startsAt:r.starts_at,endsAt:r.ends_at,backlogOrder:r.backlog_order==null?null:Number(r.backlog_order),backlogGroupId:r.backlog_group_id==null?null:Number(r.backlog_group_id),status:r.status,criticality:r.criticality,recurrence:r.recurrence,recurrenceEnd:r.recurrence_end,completedAt:r.completed_at,createdAt:r.created_at,updatedAt:r.updated_at});
+const groupRow=r=>({id:Number(r.id),name:r.name,parentId:r.parent_id==null?null:Number(r.parent_id),groupOrder:Number(r.group_order),createdAt:r.created_at,updatedAt:r.updated_at});
+function norm(t){for(const k of["title","status","criticality","createdAt","updatedAt"])if(t[k]==null||t[k]==="")throw new Error(`Missing task field: ${k}`);const s=t.startsAt!=null&&t.startsAt!=="",e=t.endsAt!=null&&t.endsAt!=="";if(s!==e)throw new Error("startsAt and endsAt must both be set or both be null");const recurrence=String(t.recurrence||"none");if(!s&&recurrence!=="none")throw new Error("Backlog tasks cannot be recurrent until scheduled");if(s&&t.backlogGroupId!=null)throw new Error("Scheduled tasks cannot belong to backlog groups");return{title:String(t.title),description:String(t.description||""),startsAt:s?String(t.startsAt):null,endsAt:e?String(t.endsAt):null,backlogOrder:t.backlogOrder==null?null:Number(t.backlogOrder),backlogGroupId:t.backlogGroupId==null?null:Number(t.backlogGroupId),status:String(t.status),criticality:String(t.criticality),recurrence,recurrenceEnd:s?(t.recurrenceEnd||null):null,completedAt:t.completedAt||null,createdAt:String(t.createdAt),updatedAt:String(t.updatedAt)}}
+export class TodoStore{
+constructor(filePath){this.filePath=filePath;mkdirSync(dirname(filePath),{recursive:true});this.db=new DatabaseSync(filePath);this.db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");this.migrate()}
+migrate(){const v=Number(this.db.prepare("PRAGMA user_version").get().user_version||0);if(v>3)throw new Error(`Database schema ${v} is newer than supported 3`);
+if(v<1){this.db.exec(`BEGIN;${GROUP}${TASK}${IDX}CREATE TABLE settings(key TEXT PRIMARY KEY,value_json TEXT NOT NULL,updated_at TEXT NOT NULL);PRAGMA user_version=3;COMMIT;`);this.setSetting("criticalityColors",DEFAULT_COLORS);return}
+if(v<2){this.db.exec(`BEGIN;DROP INDEX IF EXISTS idx_tasks_starts_at;DROP INDEX IF EXISTS idx_tasks_status;DROP INDEX IF EXISTS idx_tasks_criticality;ALTER TABLE tasks RENAME TO tasks_old;${GROUP}${TASK}INSERT INTO tasks(id,title,description,starts_at,ends_at,backlog_order,backlog_group_id,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at) SELECT id,title,description,starts_at,ends_at,NULL,NULL,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at FROM tasks_old;DROP TABLE tasks_old;${IDX}PRAGMA user_version=3;COMMIT;`);return}
+if(v<3){this.db.exec(`BEGIN;DROP INDEX IF EXISTS idx_tasks_starts_at;DROP INDEX IF EXISTS idx_tasks_status;DROP INDEX IF EXISTS idx_tasks_criticality;DROP INDEX IF EXISTS idx_tasks_backlog_order;ALTER TABLE tasks RENAME TO tasks_old;${GROUP}${TASK}INSERT INTO tasks(id,title,description,starts_at,ends_at,backlog_order,backlog_group_id,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at) SELECT id,title,description,starts_at,ends_at,backlog_order,NULL,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at FROM tasks_old;DROP TABLE tasks_old;${IDX}PRAGMA user_version=3;COMMIT;`)}}
+allTasks(){return this.db.prepare("SELECT * FROM tasks ORDER BY CASE WHEN starts_at IS NULL THEN 1 ELSE 0 END,starts_at,backlog_group_id,backlog_order,id").all().map(taskRow)}
+getTask(id){const r=this.db.prepare("SELECT * FROM tasks WHERE id=?").get(Number(id));return r?taskRow(r):null}
+saveTask(t){const d=norm(t);if(d.backlogGroupId!=null&&!this.getBacklogGroup(d.backlogGroupId))throw new Error(`Backlog group ${d.backlogGroupId} does not exist`);const v=[d.title,d.description,d.startsAt,d.endsAt,d.backlogOrder,d.backlogGroupId,d.status,d.criticality,d.recurrence,d.recurrenceEnd,d.completedAt,d.createdAt,d.updatedAt];if(t.id){const r=this.db.prepare("UPDATE tasks SET title=?,description=?,starts_at=?,ends_at=?,backlog_order=?,backlog_group_id=?,status=?,criticality=?,recurrence=?,recurrence_end=?,completed_at=?,created_at=?,updated_at=? WHERE id=?").run(...v,Number(t.id));if(!r.changes)throw new Error(`Task ${t.id} does not exist`);return Number(t.id)}return Number(this.db.prepare("INSERT INTO tasks(title,description,starts_at,ends_at,backlog_order,backlog_group_id,status,criticality,recurrence,recurrence_end,completed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)").run(...v).lastInsertRowid)}
+deleteTask(id){return Number(this.db.prepare("DELETE FROM tasks WHERE id=?").run(Number(id)).changes)}
+allBacklogGroups(){return this.db.prepare("SELECT * FROM backlog_groups ORDER BY parent_id,group_order,id").all().map(groupRow)}
+getBacklogGroup(id){const r=this.db.prepare("SELECT * FROM backlog_groups WHERE id=?").get(Number(id));return r?groupRow(r):null}
+isDesc(candidate,ancestor){let g=this.getBacklogGroup(candidate);const seen=new Set;while(g){if(g.id===Number(ancestor))return true;if(seen.has(g.id))throw new Error("Backlog group hierarchy contains a cycle");seen.add(g.id);g=g.parentId==null?null:this.getBacklogGroup(g.parentId)}return false}
+saveBacklogGroup(g){const name=String(g.name||"").trim();if(!name)throw new Error("Backlog group name is required");const parentId=g.parentId==null?null:Number(g.parentId),order=Number.isFinite(Number(g.groupOrder))?Number(g.groupOrder):0,now=new Date().toISOString();if(parentId!=null&&!this.getBacklogGroup(parentId))throw new Error(`Parent backlog group ${parentId} does not exist`);if(g.id){const id=Number(g.id);if(!this.getBacklogGroup(id))throw new Error(`Backlog group ${id} does not exist`);if(parentId===id||(parentId!=null&&this.isDesc(parentId,id)))throw new Error("Backlog group cannot be moved inside itself or one of its descendants");this.db.prepare("UPDATE backlog_groups SET name=?,parent_id=?,group_order=?,updated_at=? WHERE id=?").run(name,parentId,order,g.updatedAt||now,id);return id}return Number(this.db.prepare("INSERT INTO backlog_groups(name,parent_id,group_order,created_at,updated_at) VALUES(?,?,?,?,?)").run(name,parentId,order,g.createdAt||now,g.updatedAt||now).lastInsertRowid)}
+deleteBacklogGroup(id){id=Number(id);const t=Number(this.db.prepare("SELECT COUNT(*) count FROM tasks WHERE backlog_group_id=?").get(id).count),c=Number(this.db.prepare("SELECT COUNT(*) count FROM backlog_groups WHERE parent_id=?").get(id).count);if(t||c)throw new Error("Backlog group must be empty before deletion");return Number(this.db.prepare("DELETE FROM backlog_groups WHERE id=?").run(id).changes)}
+getSetting(k,f=null){const r=this.db.prepare("SELECT value_json FROM settings WHERE key=?").get(k);return r?JSON.parse(r.value_json):f}
+setSetting(k,v){this.db.prepare("INSERT INTO settings(key,value_json,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at").run(k,JSON.stringify(v),new Date().toISOString());return v}
+info(){return{filePath:this.filePath,schemaVersion:3}} close(){this.db.close()}
 }
