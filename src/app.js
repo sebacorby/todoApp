@@ -5,7 +5,7 @@ import {
 } from "./db.js";
 
 const $ = selector => document.querySelector(selector);
-const $$ = selector => [...document.querySelectorAll(selecton)];
+const $$ = selector => [...document.querySelectorAll(selector)];
 const DEFAULT_COLORS = {
   low: "#66d9a5",
   medium: "#62a8ff",
@@ -87,7 +87,7 @@ async function render() {
     await window.todoRenderDash();
     return;
   }
-  $("#content").innerHTML = '<div class="panel"><h2>Dashboard</h2><p class="muted">Cargando resumen….</p></div>';
+  $("#content").innerHTML = '<div class="panel"><h2>Dashboard</h2><p class="muted">Cargando resumen…</p></div>';
 }
 
 async function openModal(id = null, prefill = null, options = {}) {
