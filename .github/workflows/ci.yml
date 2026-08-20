@@ -24,3 +24,5 @@ jobs:
         run: xvfb-run -a npm run smoke:renderer
       - name: HTTP-served UI + loopback service + SQLite
         run: xvfb-run -a npm run smoke:http
+      - name: Backlog folder + button + in-panel form
+        run: xvfb-run -a npx electron electron/group-form-smoke.js --no-sandbox
