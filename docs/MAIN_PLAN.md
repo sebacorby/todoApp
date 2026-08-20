@@ -41,7 +41,7 @@ Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se deriv
 - 5 `COMPLETED` — Recurrencia + colores globales `ddb242e`.
 - 6 `COMPLETEED` — Polish + README + auditoría `38e2168`.
 - 7 `COMPLETED` — Hardening inicial de recurrencia `386d27d`.
-- 8 `COMPLETED` — Scope closure: corrección final de recurrencia mensual, suite ampliada, chequeo sintáctico, README limpio y CI obligatorio antes de PR.
+- 8 `COMPLETED` — Scope closure: corrección final de recurrencia mensual, suite ampliada, chequeo sintáctico, README limpio y CI. Commit de reparación definitivo `fa04f2d`; validación local: 7s{7 tests en verde.
 
 ## Definition of Done
 
@@ -58,4 +58,4 @@ Recurrencia: `none|daily|weekly|monthly`, fin opcional. Las ocurrencias se deriv
 - CI verde antes de abrir PR a `main`.
 
 ## Reanudación
-El scope planificado queda cerrado cuando el CI de la Etapa 8 finalice en `success`. Luego se puede abrir PR `feature/todo-app-implementation` -> `main`. No mergear sin instrucción explícita.
+El scope planificado está cerrado. Siguiente paso: abrir PR `feature/todo-app-implementation` -> `main`, luego verificar checks del PR. No mergear sin instruccción explícita.
